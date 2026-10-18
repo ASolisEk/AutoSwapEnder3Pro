@@ -1,5 +1,7 @@
 # Tutorial Paso a Paso de Instalación: AutoSwapEnder3Pro
 
+> **Aviso:** este tutorial corresponde a la versión anterior del diseño, cuyas piezas impresas no existen y cuya secuencia mecánica no es viable (ver sección 1 de **[PLAN_DETALLADO_AUTOSWAP_ENDER3PRO.md](PLAN_DETALLADO_AUTOSWAP_ENDER3PRO.md)**). Para armar el sistema, sigue la sección 8 de ese plan.
+
 Guía práctica de montaje mecánico, cableado electrónico sin soldadura y configuración en **macOS** para adaptar el sistema **[Kit AutoSwap A1 de Nel 3D](https://nel-3d.com/products/autoswap-completo-a1)** (basado en el diseño original de **[EVRENOT en Cults3D](https://cults3d.com/es/modelo-3d/herramientas/autoswap-bambulab-a1-plate-changer-upgrade-kit-v1)** y analizado en el video **[Convierte tu Impresora 3D en una Máquina Automática 24/7](https://www.youtube.com/watch?v=CNrtmL0N2PQ)**) a la impresora **[Creality Ender 3 Pro](https://www.creality.com/products/ender-3-pro-3d-printer)**.
 
 ## Fase 0: Preparación del Área, Herramientas y Seguridad Básica
