@@ -1,5 +1,7 @@
 # AutoSwapEnder3Pro: Sistema de Cambio Automático de Placas para Creality Ender 3 Pro
 
+> **Actualización (plan v2):** el análisis detallado y el nuevo plan de trabajo están en **[PLAN_DETALLADO_AUTOSWAP_ENDER3PRO.md](PLAN_DETALLADO_AUTOSWAP_ENDER3PRO.md)**. Ese documento audita este README, explica por qué la secuencia mecánica descrita aquí no funciona en una impresora de cama móvil y propone una **Estación de Cambio Frontal** con lista de compras, armado paso a paso para principiantes y plan de software para **macOS y Windows**. Las secciones 1.2 y 2–5 de este README quedan como referencia histórica.
+
 Documentación técnica integral, análisis de ingeniería inversa, lista de materiales (BOM), guía de armado electrónico paso a paso para principiantes y arquitectura de software en **macOS** para adaptar el sistema de cambio automático de camas magnéticas **[AutoSwap A1 de Nel 3D](https://nel-3d.com/products/autoswap-completo-a1)** (diseñado originalmente por **EVRENOT** en **[Cults3D](https://cults3d.com/es/modelo-3d/herramientas/autoswap-bambulab-a1-plate-changer-upgrade-kit-v1)** y gestionado mediante **[AutoSwap GCode Manager](https://auto-swap.net/)**) a la impresora **[Creality Ender 3 Pro](https://www.creality.com/products/ender-3-pro-3d-printer)**.
 
 ## 1. Análisis Detallado del Video y del Producto Original AutoSwap A1
