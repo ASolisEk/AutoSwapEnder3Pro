@@ -1,0 +1,8 @@
+{
+  "name": "autoswap-core",
+  "version": "0.2.0",
+  "description": "Logica portable de la Estacion de Cambio Frontal AutoSwapEnder3Pro (sin dependencias de Arduino)",
+  "license": "MIT",
+  "frameworks": "*",
+  "platforms": "*"
+}

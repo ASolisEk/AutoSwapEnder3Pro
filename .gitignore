@@ -1,0 +1,22 @@
+# PlatformIO
+.pio/
+firmware/station/.pio/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Registros locales de la app
+*.log
+autoswap_report*.csv

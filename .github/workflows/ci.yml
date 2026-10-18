@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host:
+    name: App (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-2022, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar la app y sus dependencias
+        run: pip install -e "./host[dev,gui]"
+      - name: Ubuntu - bibliotecas de sistema para Qt
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1
+      - run: ruff check host
+      - run: pytest host/tests -q
+
+  firmware:
+    name: Firmware de la estacion
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install platformio
+      - name: Pruebas de la logica (native)
+        run: pio test -d firmware/station -e native
+      - name: Compilar para Arduino UNO
+        run: pio run -d firmware/station -e uno
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-uno
+          path: firmware/station/.pio/build/uno/firmware.hex
+
+  cad:
+    name: Piezas 3D (OpenSCAD)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y openscad
+      - name: Generar todos los STL
+        run: bash cad/generar_stl.sh
+      - name: Comprobar medidas
+        run: python3 cad/tools/revisar_stl.py

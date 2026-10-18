@@ -1,8 +1,10 @@
-# Plan Detallado: AutoSwap para Creality Ender 3 Pro (v2)
+# Plan Detallado: AutoSwap para Creality Ender 3 Pro (v3)
 
 > **Qué es este documento.** Es el plan maestro para replicar en una **Creality Ender 3 Pro** la función del **[Kit AutoSwap A1 de Nel 3D](https://nel-3d.com/products/autoswap-completo-a1)** (diseño original de **EVRENOT**, [Cults3D](https://cults3d.com/en/3d-model/tool/autoswap-bambulab-a1-plate-changer-upgrade-kit-v1)), analizado en el video **[Convierte tu Impresora 3D en una Máquina Automática 24/7](https://www.youtube.com/watch?v=CNrtmL0N2PQ)**. Incluye: cómo funciona el original, una auditoría del material que ya existe en este repositorio, el diseño propuesto para la Ender 3 Pro, la lista de compras, instrucciones de armado para personas con pocos conocimientos de electrónica y el plan de desarrollo del software en **macOS y Windows**.
 >
 > **Relación con los documentos anteriores.** Este plan **revisa y reemplaza** la parte mecánica y de software de `README.md`, `INVESTIGACION_AUTOSWAP_A1_A_ENDER3PRO.md`, `TUTORIAL_INSTALACION.md` y su PDF. La sección 1 explica por qué: la secuencia mecánica descrita ahí no puede funcionar en una impresora de cama móvil como la Ender 3 Pro.
+>
+> **Actualización v3 (17-oct-2026).** Las fases de **diseño y software están terminadas**: piezas impresas paramétricas y STL ([`cad/`](cad/README.md)), firmware de la estación ([`firmware/station/`](firmware/station)), app para macOS y Windows ([`host/`](host/README.md)), plantillas del laminador ([`slicer/`](slicer/README.md)), lista de compras con precios actuales ([`docs/BOM_ALIEXPRESS.md`](docs/BOM_ALIEXPRESS.md)) y guía de armado ([`docs/TUTORIAL_ARMADO.md`](docs/TUTORIAL_ARMADO.md)). Al diseñar las piezas en detalle se mejoraron varios puntos del concepto v2 para que funcione de forma fiable en la Ender 3 Pro: están en la **sección 0.2**. Si este documento y el código difieren, prevalecen el código y la sección 0.2. Lo que queda pendiente es lo que requiere la impresora real (sección 10).
 
 ---
 
@@ -38,8 +40,8 @@
 1. **El AutoSwap A1 es un sistema mecánico sin electrónica.** Guarda hasta 10 placas de repuesto (más 1 en la cama = 11 trabajos seguidos), usa un **hilo de pesca trenzado dentro de un tubo PTFE** conectado al sistema de movimiento de la impresora y se activa con **cambios en el G-code** generados por la web [auto-swap.net](https://auto-swap.net/). No necesita alimentación externa.
 2. **En una impresora de cama móvil ("bed slinger"), la cama sola no puede meter ni sacar una placa.** Si la placa va pegada a la cama por los imanes, se mueve con ella; para que la placa se desplace *respecto de la cama* hace falta **un elemento fijo que la sujete o la empuje** mientras la cama se mueve, y **un actuador de carrera larga** (≥ 235 mm, el largo de la placa). En la A1, todo indica que esa carrera larga la aporta el **eje Z** a través del hilo (por eso, en la versión 1, el cabezal tenía que subir "hasta arriba del todo").
 3. **La secuencia descrita en los documentos actuales del repositorio no cumple esa condición** (la cama "arrastra" la placa nueva sin ningún elemento fijo, las "cuñas" fijas chocarían durante la impresión y la placa expulsada caería sobre el chasis). También faltan los modelos 3D de las piezas y el software no tiene control de lazo cerrado. Hay que rediseñar (detalle en la sección 1).
-4. **Recomendación: una Estación de Cambio Frontal (ECF).** Un módulo independiente que se coloca delante de la impresora con **un eje lineal propio (motor paso a paso NEMA 17)**, **un gancho y una bandeja basculante movidos por servos**, **un cargador de placas** y **cuatro sensores**. La impresora solo lleva la cama a la posición de cambio. La electrónica es **Arduino UNO + CNC Shield V3** (se arma sin soldar) y una **app de escritorio para macOS y Windows** controla la impresora y la estación por USB. **No requiere modificar el firmware de la Ender 3 Pro.**
-5. **Costo y esfuerzo estimados:** ~230–460 USD en materiales (con 4 placas; cada placa extra ~10–20 USD; menos si ya tienes filamento, cables o un kit Arduino), de 6 a 10 semanas a tiempo parcial para una persona principiante, siguiendo las fases de la sección 10. El ciclo de cambio estimado es de **2–3 minutos** (contra 30–45 minutos de enfriamiento del método "auto-eject").
+4. **Recomendación: una Estación de Cambio Frontal (ECF).** Un módulo independiente que se coloca delante de la impresora con **un eje lineal propio (motor paso a paso NEMA 17)**, **un gancho y un volteador movidos por servos**, **un cargador de placas con ascensor** y **seis sensores** (v3, ver 0.2). La impresora solo lleva la cama a la posición de cambio. La electrónica es **Arduino UNO + CNC Shield V3** (se arma sin soldar) y una **app de escritorio para macOS y Windows** controla la impresora y la estación por USB. **No requiere modificar el firmware de la Ender 3 Pro.**
+5. **Costo y esfuerzo estimados:** ~230–460 USD en materiales (v3, precios de AliExpress de octubre de 2026: ≈ 5 640 MXN / 308 USD; ver sección 7) (con 4 placas; cada placa extra ~10–20 USD; menos si ya tienes filamento, cables o un kit Arduino), de 6 a 10 semanas a tiempo parcial para una persona principiante, siguiendo las fases de la sección 10. El ciclo de cambio estimado es de **2–3 minutos** (contra 30–45 minutos de enfriamiento del método "auto-eject").
 
 **Cómo leer este documento según tu interés:**
 
@@ -65,6 +67,23 @@ Para ser transparentes con lo que se pudo comprobar en esta revisión:
 | Minutajes y detalles finos del video `CNrtmL0N2PQ` | **No reverificado**: el video no fue accesible desde el entorno de esta revisión. Se usan los minutajes del análisis previo del repositorio y se marcan como tales |
 | Mecanismo interno exacto del A1 (qué pieza mueve el hilo) | **Inferido** a partir de los datos confirmados (ver 2.5). Verificable con el [video oficial de montaje](https://www.youtube.com/watch?v=SVQRO_UR8Ic) y los archivos 3MF |
 | Dimensiones de tu Ender 3 Pro concreta | **Debes medirlas** (Anexo A). Hay revisiones de la máquina con diferencias de placa base, cama y tornillería |
+
+### 0.2 Cambios de la versión 3 (diseño de detalle, oct-2026)
+
+Al pasar del concepto a piezas reales aparecieron problemas que el concepto v2 no resolvía. Cada cambio mantiene la idea general (estación frontal con eje propio, la impresora solo lleva la cama a `Y=235`):
+
+| # | Concepto v2 | Diseño v3 | Por qué |
+| :---: | :--- | :--- | :--- |
+| 1 | Cargador: pila de placas con una ranura de salida de ~1,5 mm | **Cargador de estantes** (uno por placa, cada 14 mm) con **ascensor**: NEMA 17 con husillo T8 × 2 que baja el cargador nivel a nivel | Las zapatas cuelgan 8 mm bajo cada placa: la pila no queda plana y una ranura de 1,5 mm exige tolerancias que una pieza impresa no garantiza. Con estantes nunca salen dos placas |
+| 2 | Bandeja: la mitad derecha bascula hacia abajo | **Volteador** izquierdo que **sube** (servo MG996R con palanca y rodillo); la placa pivota sobre la ceja del riel derecho y resbala a la caja | Con la mitad derecha bajando, si la pieza está en el lado izquierdo el centro de gravedad queda sobre la mitad fija y la placa no cae. Subiendo el borde izquierdo cae siempre |
+| 3 | Dedo montado en el eje del servo, con tope | **Dedo en corredera vertical** dentro de una torre, movido por un **yugo escocés** | Las fuerzas de tirar/empujar (20–35 N) las aguantan las paredes de la torre y no los engranajes del MG90S (DR5) |
+| 4 | Correa del eje lineal sobre el riel | **Lazo de correa lateral** (`x = -48`) con poleas de eje vertical | El motor y la polea loca no estorban: el dedo llega hasta el borde de la estación junto a la cama |
+| 5 | Sensores de palanca `PLACA_EN_CAMA`, `PLACA_EN_BANDEJA`, `CARGADOR_CON_PLACAS`, `BANDEJA_CERRADA` | **Inductivos M8** para `PLACA_EN_CAMA` y `PLACA_EN_DESCARGA` (detectan el acero sin contacto), rodillo **`GANCHO_ENGANCHADO`** en el carro y **HOME del ascensor** | Cualquier palanca en el recorrido de la zapata choca cuando llega la cama o al expulsar. El rodillo del carro confirma que el dedo tiene una zapata encima (sustituye al sensor del cargador) |
+| 6 | Zapata atornillada con 2 M3 a la lengüeta | Zapata que **pinza** el borde con 2 prisioneros M3 | No hay que taladrar acero de muelle templado |
+| 7 | Un tope trasero centrado | **Dos topes** a ±70 mm | Alinean mejor la placa y dejan libre la salida del cable de la cama |
+| 8 | `LOAD` se detiene al pulsar `PLACA_EN_CAMA` | Empuja hasta la posición calibrada `s_bed + 1 mm` y **luego** confirma con el sensor | El sensor sin contacto detecta la placa unos milímetros antes de que llegue al tope |
+| 9 | Patas regulables bajo la base | **Patas laterales** y plano de transferencia a 60 mm sobre la base | La estación se adapta a camas entre ~80 y ~100 mm sobre la mesa (con menos, se suplementa la impresora) |
+| 10 | Protocolo versión 1 | **Versión 2** (Anexo C): órdenes `LIFT` y `FLAP`, códigos E16–E20 | Nuevos mecanismos y sensores |
 
 ---
 
@@ -290,6 +309,8 @@ En la Estación de Cambio Frontal (sección 6), **todo el mecanismo vive en la z
 
 ## 6. Diseño recomendado: Estación de Cambio Frontal (ECF)
 
+> **v3:** la idea general de esta sección se mantiene. Los cambios de detalle (cargador con ascensor, volteador, dedo en corredera, sensores inductivos) están resumidos en la sección 0.2 y las cotas definitivas en [`cad/README.md`](cad/README.md).
+
 ### 6.1 Idea general
 
 La ECF es un módulo que se coloca **delante de la Ender 3 Pro, a la altura de la cama**. Cuando termina una pieza:
@@ -320,6 +341,8 @@ VISTA LATERAL - cama en Y = 235 (posición de cambio). Medidas aproximadas, f = 
     Z= : zapata (pieza impresa en el borde delantero de cada placa, con una ranura para el gancho)
 ```
 
+> **v3:** en el diseño definitivo la "bandeja basculante" es el **volteador** (lado izquierdo de la zona de descarga) y la "pila de placas" es un **cargador de estantes con ascensor**. Vista real del conjunto: [`cad/img/ensamble.png`](cad/img/ensamble.png).
+
 ```
 VISTA SUPERIOR
 
@@ -341,16 +364,16 @@ VISTA SUPERIOR
 | # | Componente | Función (F1–F6 de la sección 2.3) | Descripción |
 | :--- | :--- | :--- | :--- |
 | 1 | **Placas PEI 235 × 235 mm** | — | Acero para muelles con PEI liso o texturizado. Preferible con **lengüeta frontal** (pestaña que sobresale del borde); si no la tienen, ver la variante en 6.7 (DR1) |
-| 2 | **Zapata** (1 por placa) | F2, F3, F4 | Pieza de ABS/ASA atornillada a la lengüeta con 2 tornillos M3. Tiene una **ranura inferior** donde entra el dedo del gancho: sirve para tirar y para empujar |
-| 3 | **Tope trasero** | F5 | Pieza de ABS/ASA sujeta al borde trasero de la cama (centrada, lejos de la salida del cable de la cama). La placa nueva se empuja hasta tocarlo: define su posición en Y |
+| 2 | **Zapata** (1 por placa) | F2, F3, F4 | Pieza de ABS/ASA que pinza el borde delantero (lengüeta o voladizo) con 2 prisioneros M3. Tiene un **bolsillo inferior** donde entra el dedo: sirve para tirar y para empujar |
+| 3 | **Topes traseros** (2) | F5 | Piezas de ABS/ASA pinzadas al borde trasero de la cama a ±70 mm del centro. La placa nueva se empuja hasta tocarlos: definen su posición en Y |
 | 4 | **Cama rígida** | F5 | Espaciadores de silicona en lugar de muelles: la cama no cede al empujar |
 | 5 | **Eje lineal** (~550–600 mm de carrera) | F3, F4 | Motor NEMA 17 con correa GT2 (o husillo). Aporta la carrera larga (regla R3) |
-| 6 | **Carro con gancho** | F2, F3, F4 | Un servo pequeño (MG90S) levanta un dedo que entra en la ranura de la zapata. El esfuerzo de tirar/empujar va contra un **tope del carro**, no contra los engranajes del servo |
-| 7 | **Bandeja basculante** | F3 | Dos mitades a la altura de la cama: la izquierda es fija; la derecha gira con un servo MG996R. Superficie con cinta de PTFE para que la placa deslice |
-| 8 | **Cargador** | F1, F4 | Pila de 6–10 placas con guías en las esquinas. Una **ranura de salida** baja solo deja pasar la placa de abajo |
-| 9 | **Caja de recogida** | F3 | Caja con espuma al lado derecho de la estación, a nivel de mesa |
-| 10 | **Sensores** (finales de carrera) | F6 | `HOME` del carro; `PLACA_EN_CAMA` (la zapata lo pulsa cuando hay placa asentada y la cama está en `Y=235`); `PLACA_EN_BANDEJA`; `CARGADOR_CON_PLACAS`; opcional `BANDEJA_CERRADA`; botón de `STOP` |
-| 11 | **Controlador** | F6 | Arduino UNO + CNC Shield V3 + driver TMC2209 (o A4988), fuente de 12 V y reductor a 5,5 V para los servos |
+| 6 | **Carro con gancho** | F2, F3, F4 | Un servo MG90S sube y baja un **dedo en corredera** (yugo escocés) que entra en el bolsillo de la zapata. El esfuerzo de tirar/empujar lo aguantan las paredes de la torre, no los engranajes del servo |
+| 7 | **Zona de descarga** | F3 | Riel derecho con ceja y **volteador** izquierdo (servo MG996R con palanca y rodillo). Al subir el volteador, la placa pivota sobre la ceja y resbala a la caja. Superficies con cinta de PTFE |
+| 8 | **Cargador con ascensor** | F1, F4 | 6 placas, cada una en su **estante** (paso 14 mm). Un NEMA 17 con husillo T8 × 2 baja el cargador para dejar cada placa en el plano de transferencia |
+| 9 | **Caja de recogida** | F3 | Caja con espuma a la derecha de la zona de descarga, con una rampa desde el riel |
+| 10 | **Sensores** | F6 | `HOME` del carro y `HOME` del ascensor (microinterruptores); `PLACA_EN_CAMA` y `PLACA_EN_DESCARGA` (inductivos M8); `GANCHO_ENGANCHADO` (rodillo en el carro); botón de `STOP` (NC) |
+| 11 | **Controlador** | F6 | Arduino UNO + CNC Shield V3 + 2 drivers TMC2209 (o A4988) para el carro y el ascensor, fuente de 12 V y reductor a 5,5 V para los servos |
 | 12 | **App de escritorio** (macOS/Windows) | F6 | Envía los trabajos a la impresora línea por línea y ordena el cambio entre trabajos, verificando cada sensor (sección 9) |
 
 ### 6.3 Secuencia completa del cambio
@@ -363,12 +386,12 @@ VISTA SUPERIOR
 | 2 | Impresora | Retrae filamento; sube Z a `max(Z_actual + 10, Z_máx_del_trabajo + 10)` (máx. 250); aparca X en `X=5`; lleva la cama a `Y=235`; `M400`; `M84 S600` (motores energizados durante el cambio) | `ok` de `M400` | 120 s |
 | 3 | Estación | Comprueba `PLACA_EN_CAMA` = pulsado (hay placa usada) | sensor | 1 s |
 | 4 | Estación | **EXPULSAR**: gancho abajo → carro hasta `s_bed` (rápido y, en los últimos 20 mm, lento) → gancho arriba (entra en la ranura de la zapata) | posición + 300 ms | 20 s |
-| 5 | Estación | Tira de la placa a 25 mm/s hasta `s_drop` (la placa sale de la cama y queda sobre la bandeja) | `PLACA_EN_BANDEJA` pulsado y `PLACA_EN_CAMA` liberado | 25 s |
-| 6 | Estación | Gancho abajo → bandeja se inclina (1,5 s) → la placa cae a la caja → bandeja vuelve | `PLACA_EN_BANDEJA` liberado y `BANDEJA_CERRADA` | 10 s |
-| 7 | Estación | **CARGAR**: comprueba `CARGADOR_CON_PLACAS`; carro hasta `s_mag`; gancho arriba (entra en la ranura de la zapata de la placa de abajo) | sensor + posición | 15 s |
-| 8 | Estación | Empuja la placa a 25 mm/s por la bandeja hasta 15 mm antes de `s_bed`, y luego a 8 mm/s hasta que la placa toca el tope trasero | `PLACA_EN_CAMA` pulsado (o posición máx. `s_bed + 3` → error) | 40 s |
-| 9 | Estación | Gancho abajo → carro a `HOME` | `HOME` | 15 s |
-| 10 | App | Verifica estado final (placa en cama, bandeja vacía y cerrada); descuenta una placa del cargador; `M117 AutoSwap OK` | `STATUS` | 2 s |
+| 5 | Estación | Tira de la placa a 25 mm/s hasta `s_drop` (la placa sale de la cama y queda sobre la zona de descarga) | `PLACA_EN_DESCARGA` detecta, `GANCHO_ENGANCHADO` activo y `PLACA_EN_CAMA` libre (si no, E07) | 25 s |
+| 6 | Estación | Dedo abajo → el **volteador sube** (1,5 s): la placa pivota sobre la ceja del riel derecho y resbala a la caja → el volteador baja | `PLACA_EN_DESCARGA` y `GANCHO_ENGANCHADO` libres (si no, E08) | 10 s |
+| 7 | Estación | **CARGAR**: carro a `s_park`; el **ascensor** deja la placa del nivel actual en el plano; carro hasta `s_mag`; dedo arriba | `GANCHO_ENGANCHADO` (si no, E06: estante vacío) | 30 s |
+| 8 | Estación | Empuja la placa a 25 mm/s hasta 20 mm antes de `s_bed` y luego a 8 mm/s hasta `s_bed + 1` (placa contra los topes) | `PLACA_EN_CAMA` detecta (si no, E09) | 40 s |
+| 9 | Estación | Dedo abajo → carro a `s_park` → el ascensor baja al siguiente nivel (queda listo mientras la impresora calienta) | posición | 15 s |
+| 10 | App | Verifica estado final (placa en cama, descarga vacía, volteador cerrado); descuenta una placa del cargador; `M117 AutoSwap OK` | `STATUS` | 2 s |
 | 11 | Impresora | Espera de calentamiento de la placa nueva (`G4 S60`–`S90`, configurable); empieza el siguiente trabajo (su G-code inicial hace `G28` y calienta) | `ok` | — |
 
 Si **cualquier** confirmación falla, la estación se detiene, la app **pausa la cola**, mantiene la impresora en un estado seguro (calentadores de la boquilla apagados, cama en espera) y muestra qué paso falló y cómo resolverlo. Nunca se empieza un trabajo sin confirmar `PLACA_EN_CAMA`.
@@ -386,14 +409,14 @@ sequenceDiagram
     Imp-->>App: ok
     App->>ECF: EJECT
     ECF-->>App: ACCEPTED
-    Note over ECF: gancho, tirar, bascular, verificar sensores
+    Note over ECF: dedo, tirar, voltear, verificar sensores
     ECF-->>App: DONE EJECT
     App->>ECF: LOAD
     ECF-->>App: ACCEPTED
-    Note over ECF: cargador, empujar hasta el tope, gancho abajo, HOME
+    Note over ECF: ascensor, empujar hasta los topes, dedo abajo, siguiente nivel
     ECF-->>App: DONE LOAD
     App->>ECF: STATUS
-    ECF-->>App: plate_bed=1 shelf=0 trap=closed
+    ECF-->>App: bed=1 drop=0 flap=closed
     App->>Imp: G4 S60 + G-code del trabajo N+1
 ```
 
@@ -433,8 +456,8 @@ El diseño de las piezas impresas es una tarea del proyecto (fase 2, sección 10
 | :--- | :--- | :--- |
 | **DR1** | Zapata | ABS o ASA (PETG como mínimo). Fuera del área imprimible y **sin nada debajo de la placa dentro de la cama**. Altura máxima 2 mm sobre la superficie de la placa. Ancho ~40 mm, centrada. Ranura inferior de ~8 mm (en Y) × 6 mm (en X) para el dedo. Se aprieta a la lengüeta con 2 × M3 + tuercas. **Variante sin lengüeta:** colocar la placa desplazada 10 mm hacia el frente (sobresale 10 mm de la cama) y sujetar la zapata en ese voladizo; el tope trasero se adelanta 10 mm y en el laminador se reduce el fondo útil a ~210 mm |
 | **DR2** | Tope trasero | ABS/ASA (la cama llega a 60–100 °C). Centrado, ~60 mm de ancho, lejos de la esquina por donde sale el cable de la cama. Cara de tope vertical a ras del borde trasero de la cama, sobresaliendo 1,5–2 mm sobre la base magnética. Sujeto con abrazadera y tornillos al borde de la cama, sin taladrar el calefactor |
-| **DR3** | Bandeja | Superficie **0,3–0,8 mm por encima** de la base magnética de la cama (la placa "baja" a la cama, nunca choca contra su borde). Cinta de PTFE en la superficie. Borde de entrada con chaflán de 30°. Ranura central ≥ ancho de la zapata + 6 mm. La mitad que bascula gira ≥ 35° |
-| **DR4** | Cargador | Guías en las 4 esquinas con 1 mm de holgura. Ranura de salida de ~1,5 mm de alto en los laterales (deja pasar 1 placa) con una muesca central para la zapata. Pared de tope en el extremo lejano. Escalón que compense que la pila es más gruesa del lado de las zapatas. Altura ajustable con tornillo |
+| **DR3** | Zona de descarga | Superficies (volteador y tapa del riel) **0,3–0,8 mm por encima** de la base magnética de la cama. Cinta de PTFE. Chaflanes de entrada en los extremos. Canal central libre de 50 mm para la zapata y el carro. El volteador sube ≥ 25° y la ceja del riel derecho mide ≤ 1,5 mm (v3) |
+| **DR4** | Cargador | Un **estante por placa** (paso 14 mm > 8 mm de zapata bajo la placa + 1,9 mm encima), paredes a 1,5 mm de los bordes de la placa, chaflanes de salida. Ascensor con husillo autobloqueante y HOME arriba (v3) |
 | **DR5** | Carro y gancho | El dedo (PETG o aluminio) transmite la fuerza a un tope del carro. En posición "abajo", nada sobresale por encima del plano de la bandeja menos 3 mm. Cable del servo por cadena portacables |
 | **DR6** | Unión con la impresora | Escuadras atornilladas al travesaño frontal de la Ender (tuercas en T para perfil serie 20). Patas regulables para ajustar la altura. Separación cama–bandeja de 5–10 mm |
 | **DR7** | Seguridad | Sin aristas cortantes, correa cubierta, botón de STOP accesible desde el frente |
@@ -456,7 +479,7 @@ El diseño de las piezas impresas es una tarea del proyecto (fase 2, sección 10
 | La cama se desplaza al empujar | Media | Prueba T3; velocidad final de 8 mm/s; el `G28` al inicio de cada trabajo corrige cualquier desplazamiento |
 | La zapata se afloja | Baja | Mordazas atornilladas; prueba T4; revisión periódica |
 | Se rompe el servo del gancho | Baja | El esfuerzo va contra un tope (DR5) |
-| La placa no cae al bascular | Media | PTFE, ángulo ≥ 35°, sensor `PLACA_EN_BANDEJA` |
+| La placa no cae al voltear | Media | PTFE, ángulo ≥ 25°, sensor `PLACA_EN_DESCARGA` (E08) |
 | El cargador suelta dos placas | Media | Ranura de salida ajustable (DR4) |
 | El ordenador se suspende o se desconecta el USB | Media | La app evita la suspensión; la estación se detiene sola si deja de recibir mensajes (watchdog) |
 | Incendio en impresión desatendida | Baja, grave | Firmware con protección térmica activa, detector de humo, supervisar las primeras colas, no dejar la impresora sola fuera de casa |
@@ -465,391 +488,24 @@ El diseño de las piezas impresas es una tarea del proyecto (fase 2, sección 10
 
 ## 7. Lista de compras (BOM)
 
-> **Precios orientativos** en USD (tiendas en línea tipo AliExpress, Amazon o Mercado Libre). Conviértelos con el tipo de cambio del día; varían mucho por tienda y temporada. Todo se puede conectar **sin soldar**.
+> **v3:** la lista completa, con **precios actuales de AliExpress México** (consultados el 17-oct-2026), enlaces y qué variante elegir de cada anuncio, está en **[docs/BOM_ALIEXPRESS.md](docs/BOM_ALIEXPRESS.md)**.
 
-### 7.1 Para la impresora
+| Bloque | MXN aprox. | USD aprox. |
+| :--- | ---: | ---: |
+| Impresora (7 placas PEI, espaciadores, tornillería, ASA + PETG) | 1 580 | 86 |
+| Estructura (perfiles 2020 ≈ 4,8 m, escuadras, PTFE, patas) | 1 480 | 81 |
+| Eje lineal y ascensor (12 ruedas, 2 NEMA 17 —uno con husillo T8 × 2—, correa, poleas) | 1 030 | 56 |
+| Electrónica (UNO, CNC Shield, 2 TMC2209, MG996R, 2 MG90S, 2 inductivos, 3 microinterruptores, fuente 12 V 5 A, cableado) | 1 550 | 85 |
+| **Total del sistema** | **≈ 5 640** | **≈ 308** |
+| Herramientas (si no las tienes) | 430 | 24 |
 
-| # | Componente | Especificación | Cant. | USD aprox. | Para qué sirve |
-| :---: | :--- | :--- | :---: | :---: | :--- |
-| P1 | Placas de acero PEI | 235 × 235 mm, lisas o texturizadas; **preferible con lengüeta frontal** | 4 para empezar (hasta 11) | 10–20 c/u | Superficies intercambiables |
-| P2 | Base magnética | 235 × 235 mm, adhesiva (suele venir en el kit de placas) | 1 | 0–15 | Sujeta la placa a la cama |
-| P3 | Espaciadores de silicona para cama | 16–18 mm, resistentes a la temperatura | 1 juego (4) | 5–8 | Cama rígida |
-| P4 | Kit de tornillería M3 | Tornillos M3 × 8, 10, 12, 16 + tuercas + arandelas | 1 | 6–10 | Zapatas y tope trasero |
-| P5 | Filamento ABS o ASA | 0,5–1 kg | 1 | 15–25 | Zapatas y tope trasero (soportan el calor de la cama) |
-
-### 7.2 Estructura de la estación
-
-| # | Componente | Especificación | Cant. | USD aprox. | Para qué sirve |
-| :---: | :--- | :--- | :---: | :---: | :--- |
-| E1 | Perfil de aluminio 2020 | 2 × 700 mm, 4 × 250 mm, 4 × 120 mm (ajustar tras el CAD) | 1 juego | 15–25 | Bastidor |
-| E2 | Escuadras 2020 + tornillos M5 × 8/10 + tuercas en T M5 | Kit de 20 escuadras / 50 tuercas | 1 | 10–15 | Uniones del bastidor y unión a la impresora |
-| E3 | Patas niveladoras | Rosca M6 u M8 | 4 | 4–8 | Ajustar la altura |
-| E4 | Cinta de PTFE adhesiva | 20–25 mm de ancho | 1 rollo | 6–10 | Superficies de deslizamiento |
-| E5 | Varilla de acero 3 mm + rodamientos 623ZZ (o bisagras pequeñas) | — | 1 + 2–4 | 3–6 | Pivote de la bandeja |
-| E6 | Caja de recogida + lámina de espuma EVA | ≥ 300 × 300 mm | 1 | 5–10 | Recibe las placas usadas |
-| E7 | Filamento PETG | 1 kg | 1 | 15–25 | Piezas de la estación |
-
-### 7.3 Eje lineal (elige una opción)
-
-| Opción | Componentes | USD aprox. | Ventajas / desventajas |
-| :--- | :--- | :---: | :--- |
-| **A. Módulo lineal comprado** (más fácil) | Módulo de correa síncrona o husillo con **~600 mm de carrera** y soporte para NEMA 17 (muchos ya traen el motor) | 50–100 | Se atornilla y funciona; más caro |
-| **B. Hazlo tú (DIY)** (más barato) | Perfil 2020 V-Slot de 650 mm; placa de carro V-Slot con 4 ruedas; correa GT2 de 6 mm (2 m); polea GT2 20 dientes eje 5 mm; polea loca GT2 20 dientes; soporte de motor NEMA 17 para perfil 2020; tensor de correa | 30–45 (+ motor) | Mismo sistema que los ejes de tu Ender; requiere ajustar ruedas y correa |
-
-### 7.4 Electrónica
-
-| # | Componente | Especificación | Cant. | USD aprox. | Para qué sirve |
-| :---: | :--- | :--- | :---: | :---: | :--- |
-| C1 | **Arduino UNO R3** | Original (recomendado, se distingue fácilmente de la impresora por USB) o compatible con CH340 | 1 | 6–25 | Cerebro de la estación |
-| C2 | **CNC Shield V3** | Para Arduino UNO; muchos kits la traen con UNO + 4 drivers A4988 | 1 | 3–10 | Zócalos para drivers y bornes **sin soldar** |
-| C3 | **Driver TMC2209** (formato StepStick, p. ej. BIGTREETECH o FYSETC) | Con disipador | 1 + 1 de repuesto | 5–8 c/u | Controla el motor paso a paso (silencioso). Alternativa: A4988 del kit |
-| C4 | **Motor NEMA 17** | 17HS4401 o similar, ~1,5 A, ~0,4 N·m, con cable | 1 (si el módulo no lo trae) | 10–15 | Mueve el carro |
-| C5 | **Servo MG996R** | Engranajes metálicos, 4,8–7,2 V | 1 | 5–8 | Bascula la bandeja |
-| C6 | **Servo MG90S** | Micro servo con engranajes metálicos | 1 (+1 repuesto) | 3–5 | Levanta el dedo del gancho |
-| C7 | **Finales de carrera mecánicos** | Módulos "endstop" de impresora 3D con cable de 3 hilos, o microinterruptores KW11-3Z con palanca | 6 (5 + 1 repuesto) | 5–10 el paquete | Sensores |
-| C8 | **Botón de paro** tipo hongo | 22 mm, contacto NC (normalmente cerrado), con caja | 1 | 4–8 | Parada de la estación |
-| C9 | **Fuente de 12 V 3 A** | Adaptador de pared con conector 5,5 × 2,1 mm | 1 | 8–12 | Potencia para el motor y los servos |
-| C10 | Adaptador jack hembra 5,5 × 2,1 a bornes | — | 2 | 2 | Conectar la fuente sin cortar cables |
-| C11 | **Reductor DC-DC LM2596 con voltímetro** | Ajustable, con pantalla de voltaje | 1 + 1 repuesto | 3–6 c/u | Baja 12 V a 5,5 V para los servos |
-| C12 | **Conectores de palanca Wago 221** | Surtido de 2, 3 y 5 vías | 1 paquete | 8–12 | Unir cables **sin soldar** |
-| C13 | Portafusibles en línea + fusibles de 3 A | — | 1 + 3 | 2–4 | Protección de la línea de 12 V |
-| C14 | Cable de silicona 22 AWG (5 colores) | 2–5 m por color | 1 kit | 8–12 | Señales |
-| C15 | Cable 18 AWG rojo y negro | 2 m de cada uno | 1 | 3–5 | Potencia (12 V y 5,5 V) |
-| C16 | Cables Dupont (hembra-hembra y macho-hembra, 20 cm) + extensiones de servo (30–50 cm) | — | 1 paquete + 2 | 6–10 | Conexiones a la CNC Shield |
-| C17 | Cadena portacables 7 × 7 mm | 1 m | 1 | 4–6 | Guía el cable del servo del carro |
-| C18 | Cable USB A–B (para el UNO) de buena calidad | ≤ 1,5 m | 1 | 3–5 | Ordenador ↔ estación |
-| C19 | Cable USB para la impresora | Mini-USB (placa 1.1.x) o Micro-USB (placa 4.2.x), de datos | 1 | 3–5 | Ordenador ↔ impresora |
-| C20 | Hub USB con alimentación propia (opcional) | Útil en portátiles o Mac con pocos puertos | 1 | 10–25 | Más puertos estables |
-| C21 | Capacitor electrolítico 1000 µF 16 V (opcional) | — | 1 | 1 | Estabiliza la línea de los servos |
-| C22 | Caja para la electrónica | Impresa o comprada, con ventilación | 1 | 0–8 | Protección |
-
-### 7.5 Herramientas (si no las tienes)
-
-| Herramienta | ¿Imprescindible? | USD aprox. |
-| :--- | :---: | :---: |
-| **Multímetro digital** | Sí | 10–25 |
-| **Calibrador (pie de rey) digital** | Sí | 10–20 |
-| **Báscula colgante digital** (de equipaje) | Sí (pruebas de fuerza) | 5–10 |
-| Destornilladores de precisión y llaves Allen 1,5–4 mm | Sí | 5–15 |
-| Pelacables automático y alicate de corte | Sí | 10–20 |
-| Crimpadora de punteras + kit de punteras | Recomendable | 15–25 |
-| Nivel de burbuja pequeño, bridas, cinta doble cara | Sí | 5 |
-
-### 7.6 Resumen de costos
-
-| Bloque | USD aprox. |
-| :--- | :---: |
-| Impresora (4 placas, base, espaciadores, tornillería, ABS) | 50–110 |
-| Estructura de la estación | 60–100 |
-| Eje lineal (opción B con motor / opción A) | 40–100 |
-| Electrónica | 80–150 |
-| **Total del sistema (sin herramientas)** | **≈ 230–460** |
-| Herramientas, si no las tienes | 40–90 |
-
-> **Ahorro:** si ya tienes filamento, cables USB, un kit Arduino o un motor NEMA 17 de una impresora vieja, el costo baja de forma notable. Cada placa extra cuesta ~10–20 USD más su zapata impresa.
+Respecto a la v2 se añaden el motor con husillo del ascensor, el segundo driver, los sensores inductivos y más ruedas; se eliminan la bandeja con bisagras y los sensores del cargador. El total queda dentro de la estimación original (230–460 USD).
 
 ---
 
 ## 8. Instrucciones de armado para principiantes
 
-> Esta guía supone que **nunca has armado electrónica**. Todo se conecta con **destornillador, conectores Wago y cables Dupont**, sin soldar. Avanza en orden: cada fase termina con una **verificación**; no pases a la siguiente si la verificación falla.
-
-### 8.0 Seguridad antes de empezar
-
-**⚠ Atención — reglas que no se rompen:**
-
-1. **No abras la fuente de alimentación de la impresora ni toques cables de 110/220 V.** La estación usa su **propio adaptador de pared de 12 V**.
-2. **Conecta y desconecta cables solo con todo desenchufado**: adaptador de 12 V fuera del enchufe **y** USB desconectado.
-3. **Nunca conectes ni desconectes el motor paso a paso con el driver encendido.** Se destruye el driver al instante.
-4. **El driver tiene una orientación.** Insertado al revés en la CNC Shield se quema (ver 8.9.1).
-5. **Respeta la polaridad**: rojo = positivo (+), negro = negativo (−). En el capacitor electrolítico, la franja marca el negativo.
-6. **No alimentes los servos desde el pin de 5 V del Arduino**: los servos piden picos de más de 1 A y reinician o dañan el Arduino.
-7. **Impresión desatendida = riesgo de incendio.** Firmware con protección térmica, detector de humo cerca, y supervisa las primeras colas completas.
-8. La cama y la boquilla queman. Trabaja con la impresora fría (< 30 °C) y desenchufada al tocar la cama.
-
-### 8.1 Conceptos mínimos de electrónica (en lenguaje sencillo)
-
-| Concepto | Explicación sencilla | En este proyecto |
-| :--- | :--- | :--- |
-| **Voltaje (V)** | La "presión" de la electricidad | 12 V para el motor; 5,5 V para los servos; 5 V de lógica del Arduino (lo da el USB) |
-| **Corriente (A)** | El "caudal" que consume un aparato | La fuente de 12 V debe dar al menos 3 A |
-| **GND (tierra común)** | El "cero" de referencia. Dos aparatos solo se entienden si comparten el mismo GND | Todos los negativos (fuente, reductor, servos, CNC Shield) se unen en un Wago "GND" |
-| **Señal vs. potencia** | La señal "da órdenes" (poca corriente); la potencia "hace fuerza" | El Arduino da la señal a los servos; la fuerza viene del reductor de 5,5 V |
-| **Final de carrera (microinterruptor)** | Botón con 3 patas: **C** (común), **NO** (normalmente abierto: se cierra al pulsar), **NC** (normalmente cerrado: se abre al pulsar) | Sensores: se usan **C + NO**. Botón STOP: **NC** (si se corta un cable, la estación también se detiene) |
-| **Módulo "endstop" de 3 hilos** | Final de carrera en una plaquita con pines **S** (señal), **−** (GND) y **+** (VCC) | En la CNC Shield solo se conectan **S** y **−**. Si la lectura sale al revés, se invierte en la configuración (8.10) |
-| **Servo** | Motor que gira a un ángulo exacto. 3 cables: **marrón/negro = GND**, **rojo = +**, **naranja/amarillo = señal** | Gancho (MG90S) y bandeja (MG996R) |
-| **Motor paso a paso** | Motor que avanza en pasos exactos. 4 cables = **2 bobinas** (2 pares) | Mueve el carro |
-| **Driver** | La plaquita que traduce las órdenes del Arduino en corriente para el motor | TMC2209 (o A4988) en la CNC Shield |
-
-**Cómo usar el multímetro (lo necesitarás 4 veces):**
-
-- **Medir voltaje:** perilla en **V⎓** (corriente continua) en la escala de 20 V. Punta **negra** en el borne `COM`, punta **roja** en `VΩ`. Toca con la negra un punto GND y con la roja el punto a medir.
-- **Continuidad:** perilla en el símbolo de sonido. Si las dos puntas tocan puntos conectados entre sí, **pita**.
-- **Identificar las bobinas del motor:** en continuidad (o resistencia, 200 Ω), los dos cables de una misma bobina pitan o marcan ~1,5–3 Ω entre sí. Los de bobinas distintas no.
-
-### 8.2 Fase 1 — Preparar la impresora
-
-#### 8.2.1 Firmware y protección térmica
-
-1. Conecta la impresora por USB al ordenador y abre un terminal serie a 115200 baudios (la app del proyecto en la fase 4, o mientras tanto [Pronterface](https://www.pronterface.com/)).
-2. Envía `M115` y anota `FIRMWARE_NAME`, la versión y el tipo de placa.
-3. Si tienes la **placa 1.1.x (8 bits) con firmware original de 2018**, actualiza el firmware o cambia la placa por una 4.2.2/4.2.7: algunas unidades tempranas venían **sin protección contra fuga térmica** ("thermal runaway"), imprescindible para imprimir sin supervisión. En la placa 1.1.x actualizar requiere un programador (USBasp o "Arduino as ISP"); en las 4.2.x basta copiar el `.bin` a la microSD.
-
-> El sistema **no necesita** ningún cambio funcional en el firmware de la impresora; esta actualización es solo por seguridad.
-
-#### 8.2.2 Cama rígida con espaciadores de silicona
-
-1. Impresora **apagada, desenchufada y fría**.
-2. Retira la placa o alfombrilla.
-3. Desenrosca por completo las 4 ruedas de nivelación de debajo de la cama.
-4. Levanta la cama con cuidado (el cable de la cama sale por detrás: no tires de él) y retira los 4 muelles.
-5. Coloca un espaciador de silicona en cada tornillo.
-6. Baja la cama y vuelve a enroscar las ruedas hasta comprimir ligeramente los espaciadores (~2 mm).
-
-**✔ Verificación:** al presionar una esquina de la cama con un dedo, no se hunde ni se mueve.
-
-#### 8.2.3 Base magnética y placas
-
-1. Si la base magnética actual está en buen estado, consérvala. Si no, despégala, limpia el aluminio con alcohol isopropílico y pega la nueva alineada con los bordes de la cama, presionando del centro hacia afuera para sacar burbujas. Espera 24 h antes de calentar.
-2. Numera cada placa (1, 2, 3...) con marcador permanente en la lengüeta.
-
-#### 8.2.4 Tope trasero
-
-1. Imprime el tope trasero en **ABS o ASA** (4 perímetros, 40 % de relleno).
-2. Móntalo centrado en el borde trasero de la cama, lejos de la esquina por donde sale el cable.
-3. Con el calibrador, comprueba que sobresale **1,5–2 mm** sobre la base magnética.
-
-**✔ Verificación:** con la impresora apagada, mueve la cama a mano por todo su recorrido: el tope no toca el motor Y, el final de carrera Y ni el cable.
-
-#### 8.2.5 Zapatas
-
-1. Imprime una zapata por placa en **ABS o ASA** (4 perímetros, 40 % de relleno, ranura hacia abajo).
-2. Sujeta cada zapata a la lengüeta de su placa con 2 tornillos M3 y tuercas. Aprieta firme sin deformar la pieza.
-3. Comprueba con el calibrador que la zapata no sobresale más de **2 mm** sobre la superficie de la placa.
-
-**✔ Verificación:** prueba T4 (sección 6.5): tira de la zapata con la báscula hasta 3 × `F_desl`; no se mueve ni se agrieta.
-
-#### 8.2.6 Nivelación y primera capa
-
-1. Coloca una placa contra el tope trasero.
-2. Haz `G28` (Auto Home) y nivela las 4 esquinas y el centro con una hoja de papel.
-3. Imprime un cuadrado de prueba de una sola capa y ajusta hasta que la primera capa sea uniforme.
-
-#### 8.2.7 Mediciones y pruebas de fuerza
-
-Haz las pruebas **T1, T2 y T3** de la sección 6.5 y completa la hoja del **Anexo A**. Con estos datos se terminan los planos de la estación.
-
-### 8.3 Fase 2 — Estructura de la estación
-
-1. Arma el rectángulo base con los perfiles 2020: dos largueros de 700 mm y travesaños de 250 mm en los extremos, unidos con escuadras, tornillos M5 y tuercas en T.
-2. Añade los travesaños intermedios que indique el plano (soportes de bandeja y cargador).
-3. Atornilla las 4 patas niveladoras.
-4. **Comprueba la escuadra:** mide las dos diagonales del rectángulo; deben ser iguales con ±1 mm. Si no, afloja las escuadras, empuja la esquina larga y vuelve a apretar.
-5. Nivela la estructura con el nivel de burbuja ajustando las patas.
-
-### 8.4 Fase 3 — Eje lineal
-
-**Opción A (módulo comprado):**
-
-1. Fija el módulo en el centro de la estructura con tuercas en T, con el **motor en el extremo lejano** de la impresora (lado `HOME`).
-
-**Opción B (DIY):**
-
-1. Fija el perfil V-Slot de 650 mm en el centro de la estructura.
-2. Monta el motor con su polea en el extremo lejano y la polea loca en el extremo cercano.
-3. Monta el carro: ajusta las **tuercas excéntricas** de las ruedas hasta que el carro no tenga juego pero se deslice suave.
-4. Pasa la correa, sujétala al carro por ambos lados y ténsala hasta que, al pulsarla, suene como una nota grave (firme, no dura).
-
-**✔ Verificación:** con el motor desconectado, mueve el carro a mano de un extremo al otro: suave, sin tirones ni ruidos.
-
-### 8.5 Fase 4 — Carro, gancho y cadena portacables
-
-1. Atornilla el soporte del servo MG90S al carro.
-2. **No pongas todavía el brazo (dedo) del servo:** primero hay que llevar el servo a su posición "abajo" por software (8.10, etapa 2) y después colocar el dedo en el ángulo correcto.
-3. Pasa el cable del servo (con una extensión) por la cadena portacables y fija los extremos de la cadena al carro y a la estructura.
-
-### 8.6 Fase 5 — Bandeja basculante
-
-1. Monta la mitad fija y la mitad móvil sobre su pivote (varilla de 3 mm con rodamientos o bisagras).
-2. Pega cinta de PTFE en la superficie superior de ambas mitades.
-3. Atornilla el servo MG996R y su biela a la mitad móvil (de nuevo, el brazo del servo se coloca después de centrarlo por software).
-4. Monta el sensor `BANDEJA_CERRADA` (opcional) para que se pulse con la bandeja horizontal.
-
-### 8.7 Fase 6 — Cargador
-
-1. Monta las 4 guías de esquina y la pared de tope del extremo lejano.
-2. Ajusta la **ranura de salida** con el tornillo: debe pasar **una** placa con holgura pero **no dos** (pruébalo con dos placas apiladas).
-3. Monta el sensor `CARGADOR_CON_PLACAS` bajo la placa inferior, de forma que se pulse con una sola placa encima.
-
-### 8.8 Fase 7 — Sensores
-
-| Sensor | Dónde va | Cuándo debe hacer "clic" |
-| :--- | :--- | :--- |
-| `HOME` | Extremo lejano del eje | Cuando el carro llega al final |
-| `PLACA_EN_CAMA` | En la ranura central del extremo cercano | Cuando una placa toca el tope trasero con la cama en `Y=235` (deja 0,5–1 mm de recorrido extra a la palanca) |
-| `PLACA_EN_BANDEJA` | En la ranura central, a la altura de `s_drop` | Cuando la zapata de la placa usada llega al final del tirón |
-| `CARGADOR_CON_PLACAS` | Bajo la placa inferior del cargador | Mientras haya al menos una placa |
-| `BANDEJA_CERRADA` (opcional) | Bajo la mitad móvil de la bandeja | Con la bandeja horizontal |
-
-### 8.9 Fase 8 — Electrónica paso a paso
-
-#### 8.9.1 Preparar la CNC Shield y el driver
-
-1. Pega un trozo de cinta aislante sobre la carcasa metálica del conector USB del Arduino UNO (evita que toque las soldaduras de la shield).
-2. Coloca la CNC Shield sobre el UNO, alineando todos los pines; empuja con firmeza y de forma pareja.
-3. **Jumpers de micropasos** bajo el zócalo **X**: con **TMC2209**, **sin jumpers** (8 micropasos); con **A4988**, los **3 jumpers** puestos (1/16).
-4. **Orientación del driver:** busca en la serigrafía del driver el pin **EN** y alinéalo con la marca **EN** del zócalo X de la shield. **Insertarlo al revés lo destruye.** Si dudas, compara con una foto del vendedor antes de insertar.
-5. Pega el disipador sobre el chip del driver.
-
-#### 8.9.2 Ajustar el reductor a 5,5 V (antes de conectar servos)
-
-1. Conecta la fuente de 12 V a la entrada (`IN+` rojo, `IN−` negro) del reductor LM2596 mediante el adaptador de jack y los Wago.
-2. Enchufa la fuente. Gira el tornillito dorado del potenciómetro hasta que la pantalla marque **5,5 V** (puede necesitar muchas vueltas; si sube en vez de bajar, gira al otro lado).
-3. Confírmalo con el multímetro en los bornes `OUT+`/`OUT−`.
-4. Desenchufa.
-
-#### 8.9.3 Ajustar la corriente del driver (Vref)
-
-1. **Motor desconectado.** Arduino por USB y 12 V conectados a la shield.
-2. Multímetro en V⎓: punta negra en el borne `−` de la shield, punta roja tocando la cabeza metálica del potenciómetro del driver.
-3. Gira el potenciómetro con un destornillador pequeño, poco a poco, hasta el valor objetivo para **~0,8 A**:
-   - **TMC2209** (BIGTREETECH/FYSETC, resistencia de 0,11 Ω): `Vref ≈ 1,41 × I` → **≈ 1,1 V**.
-   - **A4988** (resistencia marcada `R100` = 0,1 Ω): `Vref = 8 × I × 0,1` → **≈ 0,64 V**.
-   - Confirma la fórmula con la hoja de tu vendedor: varía según el fabricante.
-4. **Desenchufa todo** antes de conectar el motor.
-
-#### 8.9.4 Tabla de conexiones
-
-Haz las conexiones **en este orden**, con todo desenchufado. Usa punteras o deja ~8 mm de cobre pelado en cada cable que vaya a un Wago o borne.
-
-| # | Desde | Hasta | Cable | Comprobación |
-| :---: | :--- | :--- | :--- | :--- |
-| P1 | Fuente 12 V (+), por el adaptador de jack | Portafusibles 3 A → Wago **"+12V"** | Rojo 18 AWG | — |
-| P2 | Fuente 12 V (−) | Wago **"GND"** | Negro 18 AWG | — |
-| P3 | Wago "+12V" | Borne de potencia de la CNC Shield marcado **+** | Rojo 18 AWG | ¡Polaridad! |
-| P4 | Wago "GND" | Borne de potencia de la CNC Shield marcado **−** | Negro 18 AWG | ¡Polaridad! |
-| P5 | Wago "+12V" | LM2596 `IN+` | Rojo | — |
-| P6 | Wago "GND" | LM2596 `IN−` | Negro | — |
-| P7 | LM2596 `OUT+` (ya ajustado a 5,5 V) | Wago **"+5V5"** | Rojo | 5,5 V en el multímetro |
-| P8 | LM2596 `OUT−` | Wago "GND" | Negro | Tierra común |
-| S1 | Wago "+5V5" | Cable **rojo** del servo de la bandeja y del servo del gancho | Rojo | — |
-| S2 | Wago "GND" | Cable **marrón/negro** de ambos servos | Negro | — |
-| S3 | Señal (naranja) del servo de la bandeja (MG996R) | Pin de señal **CoolEn** de la shield (Arduino `A3`) | Dupont | — |
-| S4 | Señal (naranja) del servo del gancho (MG90S) | Pin de señal **SpnEn** de la shield (Arduino `D12`) | Dupont + extensión por la cadena | — |
-| S5 | (Opcional) Capacitor 1000 µF | Entre Wago "+5V5" (pata larga) y "GND" (pata con franja) | — | Polaridad |
-| M1 | Motor NEMA 17 (los 2 pares identificados en 8.1) | Conector del eje **X** de la shield (`2B 2A 1A 1B`): un par en `2B/2A` y el otro en `1A/1B` | Cable del motor | Si gira al revés se invierte por software |
-| L1 | Sensor `HOME` (S y −) | Cabezal de final de carrera **X−** (Arduino `D9`) y su GND | Dupont | — |
-| L2 | Sensor `PLACA_EN_CAMA` | Cabezal **Y−** (Arduino `D10`) y GND | Dupont | — |
-| L3 | Sensor `PLACA_EN_BANDEJA` | Cabezal **Z−** (Arduino `D11`) y GND | Dupont | — |
-| L4 | Sensor `CARGADOR_CON_PLACAS` | Cabezal **Abort** (Arduino `A0`) y GND | Dupont | — |
-| L5 | Sensor `BANDEJA_CERRADA` (opcional) | Cabezal **Hold** (Arduino `A1`) y GND | Dupont | — |
-| L6 | Botón STOP (contacto **NC**) | Cabezal **Resume** (Arduino `A2`) y GND | Dupont | — |
-| U1 | USB del Arduino UNO | Ordenador (o hub con alimentación) | USB A–B | — |
-| U2 | USB de la impresora | Ordenador (o hub) | Mini/Micro USB | — |
-
-> En cada par de pines de final de carrera de la shield, un pin es la **señal** y el otro es **GND**. Si dudas, usa el multímetro en continuidad entre el pin y el borne `−` de la shield: el que pita es GND.
->
-> **Truco opcional (USB de la impresora):** algunas Ender reciben alimentación por el USB del ordenador y quedan "medio encendidas" con la fuente apagada. Un adaptador USB que bloquea los 5 V (o cinta sobre el pin de 5 V del conector) lo evita.
-
-#### 8.9.5 Diagrama de conexiones
-
-```
-                 +------------- FUENTE 12 V 3 A (adaptador de pared) --------------+
-                 |  (+) rojo                                            (-) negro   |
-                 +-----|------------------------------------------------------|-----+
-                       |                                                      |
-                 [FUSIBLE 3 A]                                                |
-                       |                                                      |
-              +--------+--------+                                    +--------+--------+
-              |  WAGO "+12V"    |                                    |   WAGO "GND"    |
-              +---+---------+---+                                    +--+----+----+----+
-                  |         |                                           |    |    |
-                  |         +----> LM2596 IN+     LM2596 IN- <----------+    |    |
-                  |                LM2596 OUT+ (5,5 V) ---> WAGO "+5V5"      |    |
-                  |                LM2596 OUT- ------------------------------+    |
-                  v                                                               v
-          CNC SHIELD borne "+"                                          CNC SHIELD borne "-"
-
-  WAGO "+5V5" --> rojo de servo MG996R (bandeja) y rojo de servo MG90S (gancho)
-  WAGO "GND"  --> marron/negro de ambos servos
-  senal servo bandeja (naranja) --> CNC Shield "CoolEn" (A3)
-  senal servo gancho  (naranja) --> CNC Shield "SpnEn"  (D12)
-
-  Motor NEMA 17 (2 pares)  --> conector del eje X (2B 2A 1A 1B); driver en el zocalo X
-  HOME               --> X-     (D9)  + GND
-  PLACA_EN_CAMA      --> Y-     (D10) + GND
-  PLACA_EN_BANDEJA   --> Z-     (D11) + GND
-  CARGADOR           --> Abort  (A0)  + GND
-  BANDEJA_CERRADA    --> Hold   (A1)  + GND   (opcional)
-  BOTON STOP (NC)    --> Resume (A2)  + GND
-  USB del Arduino UNO --> ordenador
-```
-
-#### 8.9.6 Revisión antes de energizar
-
-- [ ] Driver insertado con **EN** alineado con **EN**.
-- [ ] Rojo al `+` y negro al `−` en la shield, el reductor y la fuente.
-- [ ] Reductor medido en **5,5 V** antes de conectar los servos.
-- [ ] Ningún cable de servo conectado al 5 V del Arduino.
-- [ ] Todos los negativos en el Wago "GND".
-- [ ] Tira suavemente de cada cable: ninguno se sale de su Wago o borne.
-- [ ] No hay cobre pelado tocando otro cable ni la estructura de aluminio.
-
-### 8.10 Fase 9 — Primer encendido por etapas
-
-**Etapa 1 — Solo USB (sin 12 V):**
-
-1. Carga el firmware de la estación (sección 9.7 o 9.8).
-2. En la app, pantalla **Estación**, pulsa **Estado** (o envía `STATUS`): aparecen los sensores.
-3. Pulsa cada final de carrera a mano y comprueba que su valor cambia. Si uno aparece al revés (pulsado cuando no lo está), cambia su opción `inv_*` en la configuración.
-
-**Etapa 2 — Servos (con 12 V):**
-
-1. Enchufa la fuente de 12 V.
-2. Envía `HOOK DOWN`. Ahora coloca el dedo del gancho en el servo apuntando hacia abajo (posición de reposo) y atorníllalo.
-3. Envía `HOOK UP` y `HOOK DOWN` varias veces; ajusta los ángulos `hook_up_deg` / `hook_down_deg` si hace falta.
-4. Repite con la bandeja: `TRAP CLOSE` (coloca el brazo con la bandeja horizontal), luego `TRAP OPEN` / `TRAP CLOSE`.
-
-**Etapa 3 — Motor:**
-
-1. Envía `MOVE 10`: el carro debe avanzar 10 mm **hacia la impresora** (sin `HOME`, la estación solo permite movimientos de hasta ±20 mm). Si va al revés, `CFG SET dir_invert 1` y `CFG SAVE`.
-2. Envía `HOME`: el carro va despacio hasta el sensor `HOME`, retrocede un poco y fija la posición 0.
-3. Calibra los pasos por milímetro: `MOVE 100`, mide el desplazamiento real con el calibrador o una regla y calcula `nuevo = actual × 100 / medido`; guárdalo con `CFG SET steps_per_mm <nuevo>` y `CFG SAVE`.
-
-### 8.11 Fase 10 — Alinear la estación con la impresora
-
-1. Desde la app o la pantalla de la impresora, haz `G28` y lleva la cama a `Y=235`.
-2. Acerca la estación por delante: la **ranura central** debe quedar alineada con la zapata.
-3. **Altura:** la superficie de la bandeja debe quedar **0,3–0,8 mm por encima** de la base magnética de la cama. Mídelo con el calibrador (función de profundidad) o con hojas de papel (~0,1 mm cada una). Ajusta con las patas.
-4. **Separación:** 5–10 mm entre el borde de la cama y el borde de la bandeja.
-5. Atornilla las escuadras de unión al travesaño frontal de la impresora con tuercas en T.
-
-**✔ Verificación:** con la impresora apagada, mueve la cama a mano de `Y=0` a `Y=235`: la zapata entra en la ranura sin rozar y nada de la estación toca la cama.
-
-### 8.12 Fase 11 — Calibrar las posiciones del carro
-
-1. Con una placa asentada en la cama y la cama en `Y=235`, mueve el carro (`MOVE`) hasta que el dedo quede justo bajo la ranura de la zapata; `HOOK UP` debe entrar sin forzar. Lee la posición `pos` con `STATUS` y guárdala con `CFG SET s_bed <pos>`.
-2. Con placas en el cargador, repite para la zapata de la placa inferior: `s_mag`.
-3. Tira manualmente de una placa hasta que quede entera sobre la bandeja y pulse `PLACA_EN_BANDEJA`: `s_drop`.
-4. `CFG SAVE`.
-
-### 8.13 Fase 12 — Pruebas
-
-1. **En banco (opcional, muy recomendable):** antes de acercar la estación a la impresora, construye una "cama de prueba" (una tabla con una base magnética a la misma altura) y ejecuta `EJECT` y `LOAD` 20 veces.
-2. **Con la impresora, sin imprimir:** en la app, **Asistente → Ciclo de prueba** (o `autoswap test-swap --cycles 20`). Objetivo: 20 de 20 sin fallos.
-3. **Primera cola real supervisada:** 3 trabajos de un cuadrado de 20 × 20 × 5 mm en PLA.
-4. **Prueba de fiabilidad:** 50 ciclos con ≥ 98 % de éxito antes de dejar colas largas sin supervisión (sección 10).
-
-### 8.14 Lista de verificación final
-
-- [ ] Firmware de la impresora con protección térmica.
-- [ ] Cama rígida y nivelada; primera capa correcta en todas las placas.
-- [ ] Zapatas firmes; tope trasero sin interferencias.
-- [ ] Estación alineada (altura, centrado, separación) y atornillada.
-- [ ] Todos los sensores responden y no están invertidos.
-- [ ] 20 ciclos de prueba sin fallos.
-- [ ] Botón STOP probado: detiene el carro de inmediato.
-- [ ] Detector de humo instalado cerca de la impresora.
+> **v3:** la guía de armado se ha reescrito para el diseño definitivo y está en **[docs/TUTORIAL_ARMADO.md](docs/TUTORIAL_ARMADO.md)**: seguridad, mediciones, preparación de la impresora, impresión de piezas, base, eje lineal, zona de descarga, cargador con ascensor, electrónica sin soldar (tabla de conexiones con el nuevo mapa de pines), firmware y app, primer encendido por etapas, alineación con la impresora, calibración de `s_bed` / `s_mag` / `lift_zero_mm`, pruebas y uso diario. Cada fase termina con una verificación.
 
 ---
 
@@ -908,146 +564,60 @@ El modo microSD se deja como **fase avanzada opcional** (sección 9.13).
 
 **Plataforma:** PlatformIO (`platform = atmelavr`, `board = uno`, `framework = arduino`). Bibliotecas: `AccelStepper` (movimiento con aceleración), `Servo` (incluida en Arduino), `EEPROM` (configuración).
 
-**Mapa de pines** (CNC Shield V3):
+**Mapa de pines v3** (CNC Shield V3) — implementado en [`firmware/station/src/main.cpp`](firmware/station/src/main.cpp):
 
 | Función | Pin Arduino | Rótulo en la shield |
 | :--- | :---: | :--- |
-| STEP / DIR / EN del motor | `D2` / `D5` / `D8` | Eje X |
-| Sensor `HOME` | `D9` | X− / X+ |
-| Sensor `PLACA_EN_CAMA` | `D10` | Y− / Y+ |
-| Sensor `PLACA_EN_BANDEJA` | `D11` | Z− / Z+ |
-| Sensor `CARGADOR_CON_PLACAS` | `A0` | Abort |
-| Sensor `BANDEJA_CERRADA` (opcional) | `A1` | Hold |
+| Motor del carro STEP / DIR | `D2` / `D5` | Eje X |
+| Motor del ascensor STEP / DIR | `D3` / `D6` | Eje Y |
+| Habilitación de drivers (común) | `D8` | EN |
+| `HOME` del carro (microinterruptor) | `D9` | X− |
+| `HOME` del ascensor (microinterruptor) | `D10` | Y− |
+| `PLACA_EN_CAMA` (inductivo M8 + diodo) | `D11` | Z− |
+| `PLACA_EN_DESCARGA` (inductivo M8 + diodo) | `A0` | Abort |
+| `GANCHO_ENGANCHADO` (rodillo en el carro) | `A1` | Hold |
 | Botón `STOP` (NC) | `A2` | Resume |
-| Servo del gancho | `D12` | SpnEn |
-| Servo de la bandeja | `A3` | CoolEn |
+| Servo del gancho (MG90S) | `D12` | SpnEn |
+| Servo del volteador (MG996R) | `A3` | CoolEn |
 
-**Módulos:**
+**Organización del código:**
 
-| Módulo | Responsabilidad |
+| Archivo | Responsabilidad |
 | :--- | :--- |
-| `pins.h` | Mapa de pines |
-| `config` | Parámetros en EEPROM con número de versión y CRC; valores por defecto si la EEPROM está vacía o corrupta |
-| `inputs` | Lectura con antirrebote (20 ms) e inversión configurable de cada sensor |
-| `motion` | `AccelStepper`, conversión mm ↔ pasos, homing, límites (`0 ≤ s ≤ s_max`) |
-| `actuators` | Servos; se **desconectan** (`detach`) en reposo para evitar zumbido y calor (la bandeja cerrada descansa sobre un tope mecánico) |
-| `sequencer` | Secuencias `HOME`, `EJECT`, `LOAD` como máquinas de estados **sin bloquear** (sin `delay()`), con tiempo límite por paso |
-| `protocol` | Lectura de líneas, comandos y respuestas (Anexo C) |
-| `safety` | Botón STOP, watchdog del host (sin `PING` en 6 s durante una acción → parada segura), watchdog de hardware del AVR (2 s) |
+| `lib/core/src/config.*` | Parámetros (lista X-macro), valores por defecto, rangos, CRC16. Nombres en PROGMEM |
+| `lib/core/src/hal.h` | Interfaz con el hardware (ejes, sensores, servos, EEPROM, serie) |
+| `lib/core/src/station.*` | Protocolo, máquinas de estados sin bloqueo (`HOME`, `EJECT`, `LOAD`, `MOVE`, `LIFT`), tiempos límite, watchdog del ordenador, STOP |
+| `src/main.cpp` | `ArduinoHal`: AccelStepper (2 ejes), Servo (se desconectan en reposo), antirrebote de 20 ms, EEPROM con CRC, watchdog de hardware de 2 s |
+| `test/test_core/test_main.cpp` | 20 pruebas Unity con una estación simulada (ciclo completo, fallos inyectados, STOP, watchdog, configuración) |
 
-**Máquina de estados de la estación:**
+Uso de memoria en el UNO: RAM 41 % (849 de 2048 bytes), flash 78 %.
 
-```mermaid
-stateDiagram-v2
-    [*] --> SinHome: encendido
-    SinHome --> Homing: HOME
-    Homing --> Reposo: sensor HOME ok
-    Homing --> Falla: tiempo límite
-    Reposo --> Expulsando: EJECT
-    Reposo --> Cargando: LOAD
-    Reposo --> Manual: MOVE / HOOK / TRAP
-    Manual --> Reposo: movimiento terminado
-    Expulsando --> Reposo: DONE
-    Cargando --> Reposo: DONE
-    Expulsando --> Falla: sensor o tiempo límite
-    Cargando --> Falla: sensor o tiempo límite
-    Reposo --> Falla: STOP
-    Expulsando --> Falla: STOP
-    Cargando --> Falla: STOP
-    Falla --> SinHome: RESET
-```
-
-**Parámetros configurables** (con `CFG SET` / `CFG SAVE`):
+**Parámetros configurables** (`CFG LIST` / `GET` / `SET` / `SAVE` / `DEFAULTS`):
 
 | Clave | Por defecto | Descripción |
 | :--- | :---: | :--- |
-| `steps_per_mm` | 40 | GT2 de 20 dientes con 8 micropasos (TMC2209). Con A4988 a 1/16: 80. Con husillo T8 de 8 mm: 200 (8 µpasos) |
-| `travel_mm_s` / `push_mm_s` / `final_mm_s` | 80 / 25 / 8 | Velocidades: sin carga, con placa, aproximación final |
-| `accel_mm_s2` | 300 | Aceleración |
-| `s_mag` / `s_drop` / `s_bed` / `s_max` | 15 / 280 / 525 / 540 | Posiciones (sección 6.4) |
-| `hook_up_deg` / `hook_down_deg` | 95 / 10 | Ángulos del servo del gancho |
-| `trap_closed_deg` / `trap_open_deg` | 20 / 75 | Ángulos del servo de la bandeja |
-| `inv_home`, `inv_bed`, `inv_shelf`, `inv_mag`, `inv_trap` | 0 | Invertir la lectura de cada sensor |
-| `dir_invert` | 0 | Invertir el sentido del motor |
-| `host_timeout_s` | 6 | Watchdog del host |
+| `steps_per_mm` / `lift_steps_per_mm` | 40 / 800 | Carro (GT2 20T, 8 µpasos) / ascensor (T8 × 2, 8 µpasos). Con A4988 a 1/16: 80 / 1600 |
+| `travel_mm_s` / `push_mm_s` / `final_mm_s` / `accel_mm_s2` | 80 / 25 / 8 / 300 | Velocidades del carro: sin carga, con placa, aproximación final; aceleración |
+| `home_mm_s`, `lift_mm_s`, `lift_accel_mm_s2`, `lift_home_mm_s` | 15, 4, 20, 2 | Homing y ascensor |
+| `s_mag` / `s_drop` / `s_bed` / `s_park` / `s_max` | 15 / 275 / 530 / 285 / 545 | Posiciones del dedo (mm desde HOME) |
+| `approach_mm` / `seat_overshoot_mm` | 20 / 1 | Tramo lento final y empuje extra contra los topes |
+| `lift_zero_mm` / `lift_pitch_mm` / `slots` / `lift_max_mm` | 5 / 14 / 6 / 85 | Nivel 0 del cargador, paso entre estantes, número de niveles, recorrido máximo |
+| `hook_up_deg` / `hook_down_deg` | 120 / 60 | Servo del gancho (±30° = 8 mm de carrera del dedo) |
+| `flap_closed_deg` / `flap_open_deg` | 30 / 95 | Servo del volteador |
+| `hook_ms` / `flap_ms` / `servo_hold_ms` | 350 / 1500 / 800 | Esperas de los servos y tiempo hasta desconectarlos |
+| `step_timeout_s` / `host_timeout_s` | 30 / 6 | Tiempo límite por paso (se alarga en movimientos largos) y watchdog del ordenador (se activa tras el primer `PING`) |
+| `inv_mask` / `sensor_mask` / `dir_mask` | 32 / 63 / 0 | Inversión por sensor (bit 0 HOME … bit 5 STOP), sensores opcionales activos, sentido de los motores |
+| `idle_disable` / `heartbeat_ms` | 1 / 1000 | Desactivar drivers en reposo; latido `* STATUS` en reposo |
 
-**Esqueleto del firmware** (ilustrativo; el código completo es un entregable de la fase S1/S4):
+**Reglas del firmware:** sin `delay()` en la lógica; sin la clase `String`; toda acción tiene tiempo límite; tras un STOP o una falla se exige `RESET` y un nuevo `HOME`; al arrancar, los servos van a su posición segura (dedo abajo, volteador cerrado) y los drivers quedan desactivados.
 
-```cpp
-// firmware/station/src/main.cpp (esqueleto)
-#include <Arduino.h>
-#include <AccelStepper.h>
-#include <Servo.h>
-#include <avr/wdt.h>
+**`platformio.ini`:** entorno `uno` (atmelavr, AccelStepper 1.64, Servo) y entorno `native` (Unity) para las pruebas sin hardware:
 
-namespace pin {
-constexpr uint8_t STEP = 2, DIR = 5, EN = 8;              // eje X de la CNC Shield
-constexpr uint8_t HOME = 9, PLATE_BED = 10, SHELF = 11;  // X-, Y-, Z-
-constexpr uint8_t MAGAZINE = A0, TRAP_CLOSED = A1, STOP = A2;
-constexpr uint8_t SERVO_HOOK = 12, SERVO_TRAP = A3;
-}
-
-enum class State : uint8_t { Unhomed, Homing, Idle, Ejecting, Loading, Manual, Fault };
-
-AccelStepper stepper(AccelStepper::DRIVER, pin::STEP, pin::DIR);
-Servo hook, trap;
-State state = State::Unhomed;
-uint8_t phase = 0;                 // paso actual de la secuencia
-uint32_t phaseStartMs = 0, waitUntilMs = 0, lastHostMs = 0;
-char actionId[8] = "0";            // id del comando que inició la acción
-
-// Si la condición falla: parada segura, estado Fault y "ERR <código>" al host.
-#define REQUIRE(cond, code) if (!(cond)) { fault(F(code)); return false; }
-
-// EXPULSAR (sección 6.3, pasos 3 a 6). Se llama en cada vuelta de loop() y nunca bloquea.
-bool tickEject() {
-  switch (phase) {
-    case 0: REQUIRE(sensor(PLATE_BED), "E04 NO_PLATE_ON_BED");
-            setHook(false); moveTo(cfg.s_bed - 20, cfg.travel_mm_s); next(); break;
-    case 1: if (arrived()) { moveTo(cfg.s_bed, cfg.final_mm_s); next(); } break;
-    case 2: if (arrived()) { setHook(true); waitMs(300); next(); } break;
-    case 3: if (waited())  { moveTo(cfg.s_drop, cfg.push_mm_s); next(); } break;
-    case 4: if (arrived()) {
-              REQUIRE(sensor(SHELF) && !sensor(PLATE_BED), "E07 EJECT_FAIL");
-              setHook(false); setTrap(true); waitMs(1500); next();
-            } break;
-    case 5: if (waited())  { setTrap(false); waitMs(800); next(); } break;
-    case 6: if (waited())  { REQUIRE(!sensor(SHELF), "E08 TRAP_JAM"); return true; } break;
-  }
-  REQUIRE(millis() - phaseStartMs < 25000UL, "E03 TIMEOUT");
-  return false;
-}
-
-void loop() {
-  wdt_reset();                     // watchdog de hardware (2 s)
-  pollSerial();                    // lee líneas "<id> <COMANDO> [args]"
-  readInputs();                    // antirrebote e inversión
-  if (stopPressed()) emergencyStop();
-  stepper.run();
-  runStateMachine();               // tickHome() / tickEject() / tickLoad() / manual
-  hostWatchdog();                  // sin PING en host_timeout_s durante una acción -> parada segura
-  heartbeat();                     // "* STATUS ..." cada segundo
-}
+```bash
+pio test -d firmware/station -e native
+pio run  -d firmware/station -e uno -t upload
 ```
 
-**Reglas del firmware:** nada de `delay()` en la lógica; sin la clase `String` (el UNO tiene 2 KB de RAM, se usan búferes `char`); toda acción tiene tiempo límite; tras un STOP o una falla se exige `RESET` y un nuevo `HOME`; al arrancar, los servos van a su posición segura (gancho abajo, bandeja cerrada) y el driver queda desactivado hasta el primer movimiento.
-
-**`platformio.ini` propuesto:**
-
-```ini
-[env:uno]
-platform = atmelavr
-board = uno
-framework = arduino
-monitor_speed = 115200
-lib_deps = waspinator/AccelStepper@^1.64
-
-[env:native]
-platform = native
-test_framework = unity
-```
-
-Las pruebas `native` compilan en el ordenador solo la lógica pura (lector de comandos y secuencias) separada de las llamadas a Arduino, para probarla sin hardware.
 
 ### 9.5 App de escritorio
 
@@ -1090,7 +660,7 @@ host/
 1. Impresora conectada, sin errores, firmware identificado.
 2. Estación conectada, `HOME` hecho, sin fallas, bandeja cerrada.
 3. Cama en `Y=235` y `PLACA_EN_CAMA` = pulsado (hay placa para el primer trabajo).
-4. `CARGADOR_CON_PLACAS` = pulsado y el número de placas declarado por el usuario ≥ número de trabajos − 1.
+4. El número de placas declarado por el usuario ≥ número de trabajos − 1 (v3: la estación confirma cada placa con `GANCHO_ENGANCHADO` al cargarla; si un estante está vacío responde E06).
 5. Cada trabajo: `Z máx. ≤ altura máxima configurada` (150 mm por defecto), `Y máx. < 235`, sin `M84`/`M18` ni "presentar pieza" al final (si no, avisar o limpiar con la plantilla del Anexo B).
 
 **Máquina de estados del orquestador:**
@@ -1194,7 +764,7 @@ def analyze(path: Path) -> JobInfo:
 | Cola | Arrastrar archivos `.gcode`, copias, orden, altura y tiempo estimado, placas en el cargador, Iniciar / Pausar / Cancelar |
 | Monitor | Temperaturas (gráfica), trabajo actual y progreso, paso del cambio, registro |
 | Configuración | Posiciones, velocidades, altura máxima, tiempo de calentamiento de placa, puertos preferidos |
-| Asistente | Calibración guiada (secciones 8.10 a 8.13) y ciclo de prueba de N cambios con informe |
+| Asistente | Calibración guiada (guía de armado, fases 9 y 10) y ciclo de prueba de N cambios con informe |
 
 **Registros y configuración:** `platformdirs` usa las rutas correctas de cada sistema: en macOS `~/Library/Application Support/AutoSwapEnder3Pro/` y `~/Library/Logs/AutoSwapEnder3Pro/`; en Windows `%LOCALAPPDATA%\AutoSwapEnder3Pro\`. La posición de la cola se guarda en disco para poder continuar con el siguiente trabajo tras un corte.
 
@@ -1527,12 +1097,12 @@ def prepare_printer(printer: MarlinLink, job: JobInfo, cfg: SwapConfig) -> None:
 
 def swap_plate(printer: MarlinLink, station: StationLink, job: JobInfo, cfg: SwapConfig) -> None:
     prepare_printer(printer, job, cfg)
-    if station.status().get("plate_bed") != "1":
+    if station.status().get("bed") != "1":
         raise SwapError("No se detecta la placa usada en la cama (PLACA_EN_CAMA)")
     station.command("EJECT", timeout=90)
     station.command("LOAD", timeout=120)
     status = station.status()
-    if status.get("plate_bed") != "1" or status.get("shelf") != "0":
+    if status.get("bed") != "1" or status.get("drop") != "0":
         raise SwapError(f"Estado inesperado tras el cambio: {status}")
     printer.send("M117 AutoSwap: placa nueva lista")
     printer.send(f"G4 S{cfg.plate_warmup_s}", timeout=cfg.plate_warmup_s + 30)
@@ -1628,19 +1198,20 @@ jobs:
 - **Firmware:** la integración continua compila `firmware.hex`; la app lo carga con `avrdude` (incluido): `avrdude -p atmega328p -c arduino -P <puerto> -b 115200 -U flash:w:firmware.hex:i`.
 - **Publicación:** cada versión en *GitHub Releases* con los instaladores de macOS y Windows, el `.hex` y sumas de verificación SHA-256.
 
-### 9.12 Estructura propuesta del repositorio
+### 9.12 Estructura del repositorio (implementada)
 
 ```
 AutoSwapEnder3Pro/
   PLAN_DETALLADO_AUTOSWAP_ENDER3PRO.md   # este documento
   README.md
-  cad/                 # FreeCAD/Onshape: STEP + STL de zapata, tope, bandeja, cargador, carro
-  firmware/station/    # PlatformIO (Arduino UNO): src/, lib/core/, test/
-  host/                # app Python: src/autoswap/, tests/, pyproject.toml
-  slicer/              # perfiles y plantillas de G-code (Cura, PrusaSlicer, OrcaSlicer)
-  docs/                # fotos, diagramas, guía de usuario
-  legacy/              # código y documentos de la versión anterior (ESP32 + bridge)
-  .github/workflows/   # integración continua
+  docs/                # TUTORIAL_ARMADO.md, BOM_ALIEXPRESS.md
+  cad/                 # OpenSCAD paramétrico (lib/comun.scad + 16 diseños), stl/ (28 piezas), img/, PROMPTS_IA.md
+  firmware/station/    # PlatformIO (Arduino UNO): src/main.cpp, lib/core/, test/test_core/
+  host/                # app Python: src/autoswap/ (cli, gui, marlin, station, gcode, orchestrator, sim...), tests/
+  slicer/              # plantillas de G-code (Cura, PrusaSlicer, OrcaSlicer) y pieza de prueba
+  packaging/           # PyInstaller para macOS y Windows
+  legacy/              # versión 1 (ESP32 + puente serie)
+  .github/workflows/   # integración continua: app (3 sistemas), firmware, CAD
 ```
 
 ### 9.13 Modos avanzados opcionales (fase S8)
@@ -1656,17 +1227,17 @@ AutoSwapEnder3Pro/
 
 ### 9.14 Hoja de ruta del software
 
-| Sprint | Duración | Entregable | Criterio de aceptación |
-| :--- | :---: | :--- | :--- |
-| S0 | 1 semana | Estructura del repositorio, CI en macOS/Windows/Linux, simuladores básicos | CI verde en los 3 sistemas |
-| S1 | 1–2 semanas | Firmware v0.1: `HELLO`, `STATUS`, `HOME`, `MOVE`, `HOOK`, `TRAP`, `CFG`, STOP, watchdogs | Pruebas `native` verdes; en banco, todos los comandos funcionan |
-| S2 | 1 semana | CLI v0.1: `ports`, `identify`, `station <cmd>`, `console` | Identifica impresora y estación en macOS y Windows |
-| S3 | 1–2 semanas | `MarlinLink` completo, envío de trabajos, análisis de G-code | Imprime un trabajo por USB en la Ender; pruebas de `Resend` y `busy` con el simulador |
-| S4 | 1–2 semanas | Secuencias `EJECT`/`LOAD` en firmware + `swap_plate` + `test-swap` | 20 ciclos seguidos sin fallos en la impresora |
-| S5 | 1–2 semanas | Cola completa, comprobaciones previas, recuperación de errores, registros | Cola de 5 trabajos sin intervención; cada error inyectado pausa correctamente |
-| S6 | 2 semanas | Interfaz gráfica PySide6 y asistente de calibración | Una persona sin experiencia calibra siguiendo el asistente |
-| S7 | 1 semana | Instaladores macOS/Windows, actualización de firmware desde la app, guía de usuario | Instalación limpia en un Mac y un PC sin Python |
-| S8 | Opcional | Modos avanzados (9.13) | Según el modo |
+| Sprint | Duración | Entregable | Criterio de aceptación | Estado (17-oct-2026) |
+| :--- | :---: | :--- | :--- | :--- |
+| S0 | 1 semana | Estructura del repositorio, CI en macOS/Windows/Linux, simuladores básicos | CI verde en los 3 sistemas | ✅ Hecho (`.github/workflows/ci.yml`, `host/src/autoswap/sim.py`) |
+| S1 | 1–2 semanas | Firmware: `HELLO`, `STATUS`, `HOME`, `MOVE`, `GOTO`, `LIFT`, `HOOK`, `FLAP`, `CFG`, STOP, watchdogs | Pruebas `native` verdes; en banco, todos los comandos funcionan | ✅ Pruebas verdes; ⏳ prueba en banco |
+| S2 | 1 semana | CLI: `ports`, `identify`, `station <cmd>`, `console` | Identifica impresora y estación en macOS y Windows | ✅ Hecho; ⏳ probar con el hardware |
+| S3 | 1–2 semanas | `MarlinLink` completo, envío de trabajos, análisis de G-code | Imprime un trabajo por USB en la Ender; pruebas de `Resend` y `busy` con el simulador | ✅ Simulador; ⏳ impresión real |
+| S4 | 1–2 semanas | Secuencias `EJECT`/`LOAD` en firmware + `swap_plate` + `test-swap` | 20 ciclos seguidos sin fallos en la impresora | ✅ Software; ⏳ 20 ciclos reales |
+| S5 | 1–2 semanas | Cola completa, comprobaciones previas, recuperación de errores, registros, reanudar | Cola de 5 trabajos sin intervención; cada error inyectado pausa correctamente | ✅ Con simuladores (39 pruebas) |
+| S6 | 2 semanas | Interfaz gráfica PySide6 y asistente de calibración | Una persona sin experiencia calibra siguiendo el asistente | ✅ Interfaz y asistente básicos; ⏳ prueba con usuario |
+| S7 | 1 semana | Instaladores macOS/Windows, carga de firmware desde la app, guía de usuario | Instalación limpia en un Mac y un PC sin Python | ✅ Scripts (`packaging/`), `autoswap firmware-upload`, guías; ⏳ instalación limpia |
+| S8 | Opcional | Modos avanzados (9.13) | Según el modo | Parcial: avisos al móvil con ntfy; modo microSD con cambio manual (`autoswap merge`) |
 
 ---
 
@@ -1674,18 +1245,18 @@ AutoSwapEnder3Pro/
 
 ### 10.1 Fases
 
-| Fase | Semanas (a tiempo parcial) | Trabajo | Secciones | Puerta de decisión |
-| :--- | :---: | :--- | :--- | :--- |
-| **0. Medir y comprar** | 1 | Leer el plan, medir la impresora (Anexo A), pruebas de fuerza T1–T3, elegir opción de eje lineal, comprar | 6.5, 7, Anexo A | **¿`F_desl` ≤ 20 N y T3 aprobado?** Si no, usar eje de husillo y revisar la base magnética |
-| **1. Preparar la impresora** | 1–2 | Firmware seguro, cama rígida, placas, nivelación, plantillas del laminador | 8.2, Anexo B | Primera capa correcta en todas las placas |
-| **2. Diseño CAD y prototipos** | 2–4 | Zapata, tope trasero, bandeja, cargador, carro y gancho según DR1–DR8; imprimir y probar a mano | 6.7 | **¿Una placa se carga y expulsa a mano, empujando por la zapata, sin torcerse?** |
-| **3. Mecánica de la estación** | 3–5 | Estructura, eje lineal, carro, bandeja, cargador, sensores | 8.3–8.8 | El carro recorre toda la carrera sin tirones |
-| **4. Electrónica y firmware** (en paralelo con la 3) | 3–5 | Cableado, Vref, firmware v0.1 (S0–S1) | 8.9–8.10, 9.4 | Todos los comandos manuales funcionan en banco |
-| **5. App v0.1** | 5–6 | CLI, identificación de puertos, envío de trabajos (S2–S3) | 9.5–9.9 | Una pieza impresa por USB desde macOS **y** desde Windows |
-| **6. Integración** | 6–7 | Alinear, calibrar, secuencias EJECT/LOAD (S4) | 8.11–8.13 | **20 de 20 ciclos sin fallos** |
-| **7. Cola automática** | 7–8 | Cola, comprobaciones previas, recuperación de errores (S5) | 9.5 | **50 ciclos con ≥ 98 % de éxito** |
-| **8. Interfaz y distribución** | 8–10 | GUI, asistente, instaladores, guía de usuario (S6–S7) | 9.5, 9.11 | Instalación limpia por otra persona; **200 ciclos con ≥ 99 %** |
-| **9. Avanzado (opcional)** | — | microSD, OctoPrint, Klipper, Wi-Fi, avisos, cámara (S8) | 9.13 | — |
+| Fase | Semanas (a tiempo parcial) | Trabajo | Secciones | Puerta de decisión | Estado (17-oct-2026) |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **0. Medir y comprar** | 1 | Leer el plan, medir la impresora (Anexo A), pruebas de fuerza T1–T3, elegir opción de eje lineal, comprar | 6.5, 7, Anexo A | **¿`F_desl` ≤ 20 N y T3 aprobado?** Si no, usar eje de husillo y revisar la base magnética | ⏳ Usuario: lista de compras con precios lista ([BOM](docs/BOM_ALIEXPRESS.md)); faltan mediciones y pruebas T1–T3 |
+| **1. Preparar la impresora** | 1–2 | Firmware seguro, cama rígida, placas, nivelación, plantillas del laminador | [Guía](docs/TUTORIAL_ARMADO.md) fase 1, Anexo B | Primera capa correcta en todas las placas | ⏳ Usuario: guía fase 1; plantillas del laminador listas |
+| **2. Diseño CAD y prototipos** | 2–4 | Zapata, tope trasero, bandeja, cargador, carro y gancho según DR1–DR8; imprimir y probar a mano | 6.7 | **¿Una placa se carga y expulsa a mano, empujando por la zapata, sin torcerse?** | ✅ Diseño terminado (16 `.scad`, 28 STL); ⏳ imprimir y probar a mano |
+| **3. Mecánica de la estación** | 3–5 | Estructura, eje lineal, carro, bandeja, cargador, sensores | [Guía](docs/TUTORIAL_ARMADO.md) fases 3–6 | El carro recorre toda la carrera sin tirones | ⏳ Usuario: guía fases 3–6 |
+| **4. Electrónica y firmware** (en paralelo con la 3) | 3–5 | Cableado, Vref, firmware v0.1 (S0–S1) | [Guía](docs/TUTORIAL_ARMADO.md) fases 7–9, 9.4 | Todos los comandos manuales funcionan en banco | ✅ Firmware terminado y probado; ⏳ cableado (guía fase 7) |
+| **5. App v0.1** | 5–6 | CLI, identificación de puertos, envío de trabajos (S2–S3) | 9.5–9.9 | Una pieza impresa por USB desde macOS **y** desde Windows | ✅ Terminada (CLI + interfaz + simuladores) |
+| **6. Integración** | 6–7 | Alinear, calibrar, secuencias EJECT/LOAD (S4) | [Guía](docs/TUTORIAL_ARMADO.md) fases 9–10 | **20 de 20 ciclos sin fallos** | ⏳ Requiere el hardware (guía fases 9–10) |
+| **7. Cola automática** | 7–8 | Cola, comprobaciones previas, recuperación de errores (S5) | 9.5 | **50 ciclos con ≥ 98 % de éxito** | ✅ Software probado con simuladores; ⏳ 50 ciclos reales |
+| **8. Interfaz y distribución** | 8–10 | GUI, asistente, instaladores, guía de usuario (S6–S7) | 9.5, 9.11 | Instalación limpia por otra persona; **200 ciclos con ≥ 99 %** | ✅ Interfaz, asistente y scripts de instalación; ⏳ 200 ciclos reales |
+| **9. Avanzado (opcional)** | — | microSD, OctoPrint, Klipper, Wi-Fi, avisos, cámara (S8) | 9.13 | — | Parcial (avisos ntfy, `merge` manual) |
 
 ### 10.2 Criterios de aceptación del sistema completo
 
@@ -1716,7 +1287,7 @@ AutoSwapEnder3Pro/
 | El driver quema al tocarlo | Vref alto; sin disipador o ventilación | Bajar Vref; disipador; ventilador de 40 mm en la caja |
 | Los servos tiemblan o el Arduino se reinicia al moverlos | Servos alimentados desde el Arduino; GND no común; reductor mal ajustado | Alimentar desde el reductor a 5,5 V; unir todos los GND; añadir el capacitor de 1000 µF |
 | Un sensor aparece siempre "pulsado" | Lógica invertida o cableado en NC | `inv_*` en la configuración o pasar el cable a NO |
-| El gancho no entra en la ranura de la zapata | `s_bed`/`s_mag` mal calibrados; placa no apoyada en el tope | Recalibrar (8.12); empujar la placa contra el tope |
+| El gancho no entra en la ranura de la zapata | `s_bed`/`s_mag` mal calibrados; placa no apoyada en el tope | Recalibrar (guía, fase 9.5); empujar la placa contra los topes |
 | La placa nueva se tuerce al cargar | Guías flojas; bandeja desalineada; velocidad alta | Ajustar guías; revisar centrado; bajar `push_mm_s` |
 | La placa choca con el borde de la cama | Bandeja más baja que la cama | Subir la estación hasta 0,3–0,8 mm sobre la base magnética |
 | La cama se mueve durante el cambio | Motores desactivados o poca retención | Comprobar que se envía `M84 S600`; repetir T3; bajar `final_mm_s` |
@@ -1815,6 +1386,8 @@ Imprime esta tabla o cópiala, y complétala en la fase 0. Envía los valores al
 
 ## Anexo B: Plantillas de G-code para el laminador
 
+> **v3:** las plantillas definitivas están en [`slicer/`](slicer/README.md) (Cura, PrusaSlicer y OrcaSlicer, listas para copiar). Cambian respecto a las de abajo en la línea de purga, más corta (`X=3`, `Y=25 … 150`) para no pasar sobre la zapata ni los topes traseros. Incluye también una pieza de prueba (`slicer/ejemplo_cuadro.gcode`).
+
 En el perfil de la impresora del laminador, usa un área de impresión de **220 × 220 mm** y reemplaza el G-code inicial y final por estas plantillas. **El G-code final no debe desactivar motores (`M84`), apagar la cama ni mover la cama a `Y=235`**: de eso se encarga la app.
 
 **Cura — G-code inicial:**
@@ -1856,35 +1429,36 @@ M104 S0             ; boquilla apagada
 
 ---
 
-## Anexo C: Protocolo completo de la estación
+## Anexo C: Protocolo completo de la estación (versión 2)
 
-**Transporte:** USB serie, 115200 baudios, 8N1, texto ASCII, una orden por línea terminada en `\n`.
+**Transporte:** USB serie, 115200 baudios, 8N1, texto ASCII, una orden por línea terminada en `\n`. Las órdenes no distinguen mayúsculas; las claves de `CFG` van en minúsculas.
 
 **Formato:**
 
-- Petición del host: `<id> <COMANDO> [argumentos]`. `id` es un número de 1 a 65535 que elige el host (el `0` se usa para `PING`).
+- Petición del ordenador: `<id> <ORDEN> [argumentos]`. `id` es un número de 1 a 65535 que elige el ordenador. Sin `id` (uso manual en consola) se responde con `0`.
 - Respuesta inmediata: `<id> OK [datos]`, `<id> ERR <código> <nombre>` o, para acciones largas, `<id> ACCEPTED`.
-- Fin de una acción larga: `<id> DONE <COMANDO>` o `<id> ERR <código> <nombre>`.
-- Mensajes espontáneos: líneas que empiezan por `*`. Cada segundo: `* STATUS state=... homed=... pos=... plate_bed=... shelf=... mag=... trap=... stop=... err=...`.
-- Al arrancar: `* READY AUTOSWAP-STATION fw=<versión> proto=1`.
+- Fin de una acción larga: `<id> DONE <ORDEN>` o `<id> ERR <código> <nombre>`.
+- Mensajes espontáneos (empiezan por `*`): `* READY AUTOSWAP-STATION fw=0.2.0 proto=2 cfg=eeprom|defaults` al arrancar; `* STATUS ...` cada `heartbeat_ms` en reposo; `* FAULT <código> <nombre> action=<orden> step=<paso>` ante una falla.
+- **Watchdog del ordenador:** tras el primer `PING`, si durante una acción pasan `host_timeout_s` sin recibir ninguna línea, la estación se detiene (E14). La app envía `0 PING` cada 2 s mientras espera.
 
-**Comandos:**
+**Órdenes:**
 
-| Comando | Argumentos | Respuesta | Permitido en |
+| Orden | Argumentos | Respuesta | Permitida en |
 | :--- | :--- | :--- | :--- |
-| `HELLO` | — | `OK AUTOSWAP-STATION fw=<v> proto=1` | Siempre |
-| `PING` | — | `OK PONG` (alimenta el watchdog) | Siempre |
-| `STATUS` | — | `OK state=<estado> homed=<0/1> pos=<mm> plate_bed=<0/1> shelf=<0/1> mag=<0/1> trap=<open/closed> stop=<0/1> err=<código/none>` | Siempre |
-| `HOME` | — | `ACCEPTED` → `DONE HOME` | Sin home o reposo |
-| `EJECT` | — | `ACCEPTED` → `DONE EJECT` | Reposo con home |
-| `LOAD` | — | `ACCEPTED` → `DONE LOAD` | Reposo con home |
-| `MOVE` | `<mm> [mm/s]` relativo | `ACCEPTED` → `DONE MOVE` | Reposo. Sin home: máximo ±20 mm por orden |
-| `GOTO` | `<mm> [mm/s]` absoluto | `ACCEPTED` → `DONE GOTO` | Reposo con home |
-| `HOOK` | `UP` / `DOWN` | `OK` | Reposo |
-| `TRAP` | `OPEN` / `CLOSE` | `OK` | Reposo |
-| `STOP` | — | `OK` (detiene el motor de inmediato y desactiva el driver) | Siempre |
-| `RESET` | — | `OK` (pasa a "sin home") | Falla |
-| `CFG` | `LIST` / `GET <clave>` / `SET <clave> <valor>` / `SAVE` / `DEFAULTS` | `OK ...` | Reposo |
+| `HELLO` | — | `OK AUTOSWAP-STATION fw=<v> proto=2` | Siempre |
+| `PING` | — | `OK PONG` (activa y alimenta el watchdog) | Siempre |
+| `STATUS` | — | `OK state=<estado> homed=<0/1> pos=<mm> lift=<mm> level=<n> slots=<n> bed=<0/1> drop=<0/1> eng=<0/1> sw=<home><lift_home> hook=<up/down> flap=<open/closed> stop=<0/1> err=<Exx/none>` | Siempre |
+| `HOME` | — | `ACCEPTED` → `DONE HOME` (carro, aparcar, ascensor y nivel actual) | Sin acción en curso ni falla |
+| `EJECT` | — | `ACCEPTED` → `DONE EJECT` | Con HOME y placa en la cama |
+| `LOAD` | — | `ACCEPTED` → `DONE LOAD` (deja preparado el siguiente nivel) | Con HOME, cama vacía y niveles restantes |
+| `MOVE` | `<mm> [mm/s]` relativo | `ACCEPTED` → `DONE MOVE` | Sin HOME: máximo ±20 mm |
+| `GOTO` | `<mm> [mm/s]` absoluto | `ACCEPTED` → `DONE MOVE` | Con HOME del carro |
+| `LIFT` | `HOME` · `LEVEL <n>` · `NEXT` · `GOTO <mm> [mm/s]` · `MOVE <mm> [mm/s]` | `ACCEPTED` → `DONE LIFT` | `LEVEL`, `NEXT`, `GOTO`: con HOME de carro y ascensor (aparca el carro antes). `MOVE` sin HOME: ±5 mm |
+| `HOOK` | `UP` / `DOWN` | `OK` | Sin acción en curso |
+| `FLAP` | `OPEN` / `CLOSE` | `OK` | Sin acción en curso |
+| `STOP` | — | `OK` (detiene motores, desactiva drivers, suelta servos; estado FAULT E18) | Siempre |
+| `RESET` | — | `OK` (borra la falla y pasa a "sin HOME") | Sin acción en curso y con el botón STOP suelto |
+| `CFG` | `LIST` / `GET <clave>` / `SET <clave> <valor>` / `SAVE` / `DEFAULTS` | `OK ...` (`LIST`: una línea `<id> CFG clave=valor` por parámetro y `OK n=<total>`) | `SET`/`DEFAULTS` sin acción en curso |
 
 **Códigos de error:**
 
@@ -1895,68 +1469,82 @@ M104 S0             ; boquilla apagada
 | E03 | `TIMEOUT` | Un paso superó su tiempo límite |
 | E04 | `NO_PLATE_ON_BED` | Se pidió expulsar pero no hay placa en la cama |
 | E05 | `BED_OCCUPIED` | Se pidió cargar pero la cama ya tiene placa |
-| E06 | `MAGAZINE_EMPTY` | No quedan placas en el cargador |
-| E07 | `EJECT_FAIL` | La placa no llegó a la bandeja |
-| E08 | `TRAP_JAM` | La placa no cayó al bascular |
-| E09 | `SEAT_FAIL` | La placa nueva no llegó al tope trasero |
+| E06 | `MAGAZINE_EMPTY` | No hay placa en el nivel actual del cargador (o no quedan niveles) |
+| E07 | `EJECT_FAIL` | La placa no llegó a la zona de descarga |
+| E08 | `DROP_JAM` | La placa no cayó al voltear |
+| E09 | `SEAT_FAIL` | La placa nueva no llegó a los topes |
 | E10 | `BUSY` | Hay otra acción en curso |
-| E11 | `BAD_ARG` | Argumento inválido |
-| E12 | `UNKNOWN_CMD` | Comando desconocido |
+| E11 | `BAD_ARG` | Argumento inválido o fuera de rango |
+| E12 | `UNKNOWN_CMD` | Orden desconocida |
 | E13 | `LIMIT` | El movimiento sale del recorrido permitido |
-| E14 | `HOST_TIMEOUT` | El host dejó de enviar `PING` durante una acción |
-| E15 | `HOME_FAIL` | No se encontró el sensor `HOME` |
+| E14 | `HOST_TIMEOUT` | El ordenador dejó de enviar señal durante una acción |
+| E15 | `HOME_FAIL` | No se encontró el sensor HOME del carro |
+| E16 | `HOOK_MISS` | El dedo no enganchó la zapata de la placa de la cama |
+| E17 | `LIFT_HOME_FAIL` | No se encontró el sensor HOME del ascensor |
+| E18 | `HALTED` | Detenida con la orden `STOP` |
+| E19 | `IN_FAULT` | La estación está en falla: hace falta `RESET` y `HOME` |
+| E20 | `EEPROM` | No se pudo guardar la configuración |
 
-**Ejemplo de sesión** (`>` = host, `<` = estación):
+**Ejemplo de sesión** (`>` = ordenador, `<` = estación):
 
 ```
-< * READY AUTOSWAP-STATION fw=0.1.0 proto=1
+< * READY AUTOSWAP-STATION fw=0.2.0 proto=2 cfg=eeprom
 > 1 HELLO
-< 1 OK AUTOSWAP-STATION fw=0.1.0 proto=1
-> 2 HOME
-< 2 ACCEPTED
-< 2 DONE HOME
-> 3 EJECT
+< 1 OK AUTOSWAP-STATION fw=0.2.0 proto=2
+> 2 PING
+< 2 OK PONG
+> 3 HOME
 < 3 ACCEPTED
 > 0 PING
 < 0 OK PONG
-< 3 DONE EJECT
-> 4 LOAD
+< 3 DONE HOME
+> 4 EJECT
 < 4 ACCEPTED
-< 4 DONE LOAD
-> 5 STATUS
-< 5 OK state=IDLE homed=1 pos=0.0 plate_bed=1 shelf=0 mag=1 trap=closed stop=0 err=none
+< 4 DONE EJECT
+> 5 LOAD
+< 5 ACCEPTED
+< 5 DONE LOAD
+> 6 STATUS
+< 6 OK state=IDLE homed=1 pos=285 lift=19 level=1 slots=6 bed=1 drop=0 eng=0 sw=00 hook=down flap=closed stop=0 err=none
 ```
 
 ---
 
 ## Anexo D: Archivo de configuración de ejemplo
 
-```toml
-# config.toml - AutoSwapEnder3Pro (la app lo guarda en la carpeta de configuración del sistema)
+La app crea este archivo con `autoswap config set ...` o desde la interfaz (macOS: `~/Library/Application Support/AutoSwapEnder3Pro/config.toml`; Windows: `%LOCALAPPDATA%\AutoSwapEnder3Pro\config.toml`). Las posiciones y ángulos de la **estación** no van aquí: se guardan en la EEPROM del Arduino con `CFG SET` / `CFG SAVE`.
 
+```toml
 [printer]
 port = "auto"              # o "/dev/cu.usbserial-1420" (macOS) / "COM5" (Windows)
 baud = 115200
-swap_y = 235.0             # posición de cambio de la cama
+swap_y = 235.0             # posición de la cama para el cambio
 park_x = 5.0
-z_clearance = 10.0
+z_clearance = 10.0         # Z del cambio = Z máxima del trabajo + 10 mm
 z_max = 250.0
 max_part_height = 150.0    # la app rechaza trabajos más altos
 plate_warmup_s = 60        # espera tras cargar una placa fría
+z_feed = 600.0             # mm/min
+y_feed = 3000.0
+connect_wait_s = 2.5       # la placa 1.1.x se reinicia al abrir el puerto
 
 [station]
 port = "auto"
 baud = 115200
-ping_interval_s = 2
+ping_interval_s = 2.0
+eject_timeout_s = 120.0
+load_timeout_s = 150.0
+home_timeout_s = 180.0
 
 [queue]
 plates_in_magazine = 6     # lo indica el usuario al recargar
 pause_on_warning = true
 turn_off_bed_at_end = true
+strip_end_gcode = true     # omitir M84 / M140 S0 / "presentar pieza" del final de cada trabajo
 
 [notifications]
 desktop = true
-ntfy_topic = ""            # opcional: avisos al móvil con ntfy
+ntfy_topic = ""            # opcional: avisos al móvil con https://ntfy.sh
 ```
 
 ---
